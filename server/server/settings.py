@@ -63,6 +63,7 @@ MIDDLEWARE = [
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "https://bpm-production.up.railway.app/api/auth/token/",
     # Add other addresses if needed
 ]
 

@@ -9,11 +9,13 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "jspdf": "^3.0.1",
     "lucide-react": "^0.533.0",
     "next": "15.4.4",
     "node": "^24.6.0",
     "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "react-dom": "19.1.0",
+    "react-icons": "^5.5.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
