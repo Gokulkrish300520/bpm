@@ -27,11 +27,15 @@ load_dotenv(BASE_DIR / '.env')
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "your-fallback-insecure-key")
+print(f"DJANGO SECRET KEY: {SECRET_KEY}")
+
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG", "False") == "True"
 
 ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
     'bpm-production.up.railway.app',
     'glonix-frontend-indol.vercel.app',
 ]
@@ -67,6 +71,8 @@ MIDDLEWARE = [
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
     "https://bpm-production.up.railway.app",
     "https://glonix-frontend-indol.vercel.app",
     # Add other addresses if needed
