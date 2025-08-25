@@ -31,7 +31,11 @@ SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "your-fallback-insecure-key")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG", "False") == "True"
 
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "*").split(",")
+ALLOWED_HOSTS = [
+    'bpm-production.up.railway.app',
+    'glonix-frontend-indol.vercel.app',
+]
+
 
 
 # Application definition
@@ -132,7 +136,10 @@ USE_I18N = True
 
 USE_TZ = True
 
-CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",")
+CSRF_TRUSTED_ORIGINS = [
+    "https://bpm-production.up.railway.app",
+    "https://glonix-frontend-indol.vercel.app",
+]
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
