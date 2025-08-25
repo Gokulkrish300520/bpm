@@ -2,6 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState, ChangeEvent } from "react";
+import { fetchWithAuth } from "@/auth/tokenservice";
+
 import {
   FaUser,
   FaEnvelope,
@@ -239,49 +241,35 @@ export default function NewCustomerPage() {
     return Object.keys(next).length === 0;
   }
 
-  function saveCustomer() {
-    if (!validate()) {
-      // Jump to the header area if needed
+async function saveCustomer() {
+  if (!validate()) return;
+
+  // Match backend serializer fields here
+  const payload = {
+    name: displayName.trim(),
+    company_name: companyName,
+    email,
+    phone: workPhone,
+  };
+
+  try {
+    const res = await fetchWithAuth("https://bpm-production.up.railway.app/api/customers/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const errorData = await res.json();
+      alert("Failed to save customer: " + (errorData.detail || "Unknown error"));
       return;
     }
-
-    const customer = {
-      id: Date.now(),
-      createdAt: new Date().toISOString(),
-      type: customerType,
-
-      salutation,
-      firstName,
-      lastName,
-      companyName,
-      displayName,
-
-      email,
-      workPhone,
-      mobile,
-
-      pan,
-      currency,
-      openingBalance,
-      paymentTerms,
-      documents, // only meta stored
-
-      billing,
-      shipping,
-
-      contactPersons,
-      customFields,
-      reportingTags,
-
-      remarks,
-    };
-
-    const existing = JSON.parse(localStorage.getItem("customers") || "[]");
-    existing.push(customer);
-    localStorage.setItem("customers", JSON.stringify(existing));
-
     router.push("/books/sales/customers");
+  } catch (err) {
+    alert("Error saving customer.");
+    console.error(err);
   }
+}
+
 
   // =================== UI ===================
   return (

@@ -2,24 +2,62 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { fetchWithAuth } from "@/auth/tokenservice";
+
+type CustomerType = {
+  id: number;
+  name: string;
+  email: string;
+  company_name: string;
+  address: string;
+  phone: string;
+  created_at: string;
+};
+
+type ChallanStatus = "draft" | "sent" | "accepted" | "rejected";
 
 type Challan = {
   id: string;
-  date: string;
-  challanNo: string;
-  referenceNo: string;
-  customerName: string;
-  status: string;
-  invoiceStatus: string;
+  customer: CustomerType;
+  challan_number: string;
+  date: string; // ISO date
+  delivery_date : string;
+  status: ChallanStatus;
+  notes: string;
+  created_at: string;
 };
 
-export default function ChallansPage() {
-  const [challans, setChallans] = useState<Challan[]>([]);
+const STORAGE_KEY = "Challans";
 
-  useEffect(() => {
-    const stored = JSON.parse(localStorage.getItem("challans") || "[]");
-    setChallans(stored);
-  }, []);
+export default function ChallanPage() {
+  const   [Challan, setChallan] = useState<Challan[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
+  
+    useEffect(() => {
+      async function load_challans() {
+        try {
+          const res = await fetchWithAuth("https://bpm-production.up.railway.app/api/delivery-challans/");
+          if (!res.ok) throw new Error("Failed to fetch quotes");
+          const data = await res.json();
+          setChallan(data.results);
+        } catch (err) {
+          setError("Failed to load quotes");
+          console.error(err);
+        } finally {
+          setLoading(false);
+        }
+      }
+      load_challans();
+    }, []);
+  
+    const formatDate = (dateStr: string) => {
+      try {
+        return new Date(dateStr).toLocaleDateString();
+      } catch {
+        return dateStr;
+      }
+    };
 
   return (
     <div className="min-h-screen p-6 bg-green-50">
@@ -47,29 +85,39 @@ export default function ChallansPage() {
             </tr>
           </thead>
           <tbody>
-            {challans.length === 0 ? (
+            {Challan.length === 0 ? (
               <tr>
                 <td colSpan={6} className="p-6 text-center text-gray-500">
                   No challans found. Click <b>+ New</b> to create one.
                 </td>
               </tr>
             ) : (
-              challans.map((c) => (
+              Challan.map((c) => (
                 <tr key={c.id} className="border-b hover:bg-green-50">
                   <td className="p-3">{c.date}</td>
                   <td className="p-3 font-medium text-green-700">
-                    <Link href={`/challans/${c.challanNo}`} className="hover:underline">
-                      {c.challanNo}
+                    <Link href={`/challans/${c.challan_number}`} className="hover:underline">
+                      {c.challan_number}
                     </Link>
                   </td>
-                  <td className="p-3">{c.referenceNo}</td>
-                  <td className="p-3">{c.customerName}</td>
+                  <td className="p-3">{c.challan_number}</td>
+                  <td className="p-3">{c.customer.name}</td>
                   <td className="p-3">
-                    <span className="px-2 py-1 text-xs text-green-800 bg-green-200 rounded-full">
-                      {c.status?.toUpperCase()}
+                    <span
+                      className={`px-2 py-1 rounded text-sm ${
+                        c.status === "draft"
+                          ? "bg-yellow-100 text-yellow-800"
+                          : c.status === "sent"
+                          ? "bg-blue-100 text-blue-800"
+                          : c.status === "accepted"
+                          ? "bg-green-100 text-green-800"
+                          : "bg-red-100 text-red-800"
+                      }`}
+                    >
+                      {c.status}
                     </span>
                   </td>
-                  <td className="p-3 text-gray-500">{c.invoiceStatus || "-"}</td>
+                  <td className="p-3 text-gray-500">{c.notes || "-"}</td>
                 </tr>
               ))
             )}

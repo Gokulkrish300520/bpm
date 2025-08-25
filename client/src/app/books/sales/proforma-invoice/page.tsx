@@ -2,41 +2,65 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { fetchWithAuth } from "@/auth/tokenservice";
+
+type CustomerType = {
+  id: number;
+  name: string;
+  email: string;
+  company_name: string;
+  address: string;
+  phone: string;
+  created_at: string;
+};
+
+type ProformaStatus = "draft" | "sent" | "accepted" | "rejected";
 
 type ProformaInvoice = {
   id: string;
+  customer: CustomerType;
+  proforma_number: string;
   date: string; // ISO date
-  invoiceNumber: string;
-  customerName: string;
-  status: "Draft" | "Sent" | "Accepted" | "Rejected";
-  amount: number;
+  due_date : string;
+  amount: string | number;
+  status: ProformaStatus;
+  notes: string;
+  created_at: string;
 };
 
 const STORAGE_KEY = "proforma_invoices";
 
 export default function ProformaInvoicesPage() {
-  const [invoices, setInvoices] = useState<ProformaInvoice[]>([]);
-
-  useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      setInvoices(JSON.parse(saved));
-    } else {
-      // seed example
-      const seed: ProformaInvoice[] = [
-        {
-          id: String(Date.now()),
-          date: new Date().toISOString().slice(0, 10),
-          invoiceNumber: "PI-1001",
-          customerName: "XYZ Pvt Ltd",
-          status: "Draft",
-          amount: 7500,
-        },
-      ];
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(seed));
-      setInvoices(seed);
-    }
-  }, []);
+  const   [Proforma, setProforma] = useState<ProformaInvoice[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
+  
+    useEffect(() => {
+      async function loadp_invoices() {
+        try {
+          const res = await fetchWithAuth("https://bpm-production.up.railway.app/api/proforma-invoices/");
+          if (!res.ok) throw new Error("Failed to fetch quotes");
+          const data = await res.json();
+          setProforma(data.results);
+        } catch (err) {
+          setError("Failed to load quotes");
+          console.error(err);
+        } finally {
+          setLoading(false);
+        }
+      }
+      loadp_invoices();
+    }, []);
+  
+    const formatDate = (dateStr: string) => {
+      try {
+        return new Date(dateStr).toLocaleDateString();
+      } catch {
+        return dateStr;
+      }
+    };
+  if (loading) return <p>Loading customers...</p>;
+  if (error) return <p className="text-red-600">{error}</p>;
 
   return (
     <div className="min-h-screen p-6 bg-green-50">
@@ -62,7 +86,7 @@ export default function ProformaInvoicesPage() {
             </tr>
           </thead>
           <tbody>
-            {invoices.length === 0 ? (
+            {Proforma.length === 0 ? (
               <tr>
                 <td
                   colSpan={5}
@@ -72,7 +96,7 @@ export default function ProformaInvoicesPage() {
                 </td>
               </tr>
             ) : (
-              invoices.map((inv, idx) => (
+              Proforma.map((inv, idx) => (
                 <tr
                   key={inv.id}
                   className={`${
@@ -80,16 +104,16 @@ export default function ProformaInvoicesPage() {
                   } border-b`}
                 >
                   <td className="p-3">{inv.date}</td>
-                  <td className="p-3">{inv.invoiceNumber}</td>
-                  <td className="p-3">{inv.customerName}</td>
+                  <td className="p-3">{inv.proforma_number}</td>
+                  <td className="p-3">{inv.customer.name}</td>
                   <td className="p-3">
                     <span
                       className={`px-2 py-1 rounded text-sm ${
-                        inv.status === "Draft"
+                        inv.status === "draft"
                           ? "bg-yellow-100 text-yellow-800"
-                          : inv.status === "Sent"
+                          : inv.status === "sent"
                           ? "bg-blue-100 text-blue-800"
-                          : inv.status === "Accepted"
+                          : inv.status === "accepted"
                           ? "bg-green-100 text-green-800"
                           : "bg-red-100 text-red-800"
                       }`}
@@ -97,7 +121,7 @@ export default function ProformaInvoicesPage() {
                       {inv.status}
                     </span>
                   </td>
-                  <td className="p-3">₹{inv.amount.toFixed(2)}</td>
+                  <td className="p-3">₹{inv.amount}</td>
                 </tr>
               ))
             )}

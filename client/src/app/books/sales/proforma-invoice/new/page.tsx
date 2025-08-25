@@ -367,7 +367,7 @@ export default function NewProformaInvoicePage() {
             Save and Send
           </button>
           <button
-            onClick={() => router.push("/proforma-invoices")}
+            onClick={() => router.push("/books/sales/proforma-invoice")}
             className="px-4 py-2 border rounded-lg hover:bg-red-100"
           >
             Cancel

@@ -354,7 +354,7 @@ export default function NewQuotePage() {
           >
             Save and Send
           </button>
-          <button onClick={() => router.push("/quotes")} className="px-4 py-2 border rounded-lg hover:bg-red-100">
+          <button onClick={() => router.push("/books/sales/quotes")} className="px-4 py-2 border rounded-lg hover:bg-red-100">
             Cancel
           </button>
         </div>

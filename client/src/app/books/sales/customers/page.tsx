@@ -3,34 +3,56 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { FaPlus, FaEdit, FaTrash } from "react-icons/fa";
+import { fetchWithAuth } from "@/auth/tokenservice";
 
 type Customer = {
   id: number;
   name: string;
-  companyName: string;
+  company_name: string;
   email: string;
-  workPhone: string;
+  phone: string;
 };
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    const data = localStorage.getItem("customers");
-    if (data) {
+    async function loadCustomers() {
       try {
-        setCustomers(JSON.parse(data));
+        const res = await fetchWithAuth("https://bpm-production.up.railway.app/api/customers/");
+        if (!res.ok) throw new Error("Failed to fetch customers");
+        const data = await res.json();
+        setCustomers(data.results);
       } catch (err) {
-        console.error("Failed to parse customers from localStorage", err);
+        setError("Failed to load customers");
+        console.error(err);
+      } finally {
+        setLoading(false);
       }
     }
+    loadCustomers();
   }, []);
 
-  const deleteCustomer = (id: number) => {
-    const updated = customers.filter((c) => c.id !== id);
-    setCustomers(updated);
-    localStorage.setItem("customers", JSON.stringify(updated));
+  const deleteCustomer = async (id: number) => {
+    if (!confirm("Are you sure you want to delete this customer?")) return;
+
+    try {
+      const res = await fetchWithAuth(
+        `https://bpm-production.up.railway.app/api/customers/${id}/`,
+        { method: "DELETE" }
+      );
+      if (!res.ok) throw new Error("Delete failed");
+      setCustomers(customers.filter((c) => c.id !== id));
+    } catch (err) {
+      alert("Failed to delete customer");
+      console.error(err);
+    }
   };
+
+  if (loading) return <p>Loading customers...</p>;
+  if (error) return <p className="text-red-600">{error}</p>;
 
   return (
     <div className="min-h-screen p-6 bg-green-50">
@@ -62,9 +84,9 @@ export default function CustomersPage() {
               customers.map((c) => (
                 <tr key={c.id} className="hover:bg-green-50">
                   <td className="px-4 py-2 border">{c.name}</td>
-                  <td className="px-4 py-2 border">{c.companyName}</td>
+                  <td className="px-4 py-2 border">{c.company_name}</td>
                   <td className="px-4 py-2 border">{c.email}</td>
-                  <td className="px-4 py-2 border">{c.workPhone}</td>
+                  <td className="px-4 py-2 border">{c.phone}</td>
                   <td className="flex gap-3 px-4 py-2 border">
                     <button className="text-green-600 hover:text-green-800">
                       <FaEdit />
