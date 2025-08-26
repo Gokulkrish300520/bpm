@@ -1,3 +1,3 @@
 export default function ItemsPage() {
-  return <h1 className="text-2xl font-bold p-4">Items</h1>;
+  return <h1 className="p-4 text-2xl font-bold">Items</h1>;
 }

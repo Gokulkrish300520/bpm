@@ -97,7 +97,7 @@ const handleExport = () => {
         <tr key={item.account} className="hover:bg-gray-50">
           <td
             className="px-4 py-2 font-semibold"
-            style={{ paddingLeft: `${level * 20}px` }}
+            style={{ paddingLeft: `${level * 20+12}px` }}
           >
             {item.account}
           </td>

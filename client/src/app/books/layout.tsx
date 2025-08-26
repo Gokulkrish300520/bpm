@@ -41,13 +41,17 @@ export default function BooksLayout({ children }: { children: React.ReactNode })
         { name: "proforma Invoices", href: "/books/sales/proforma-invoice" },
         { name: "Invoice", href: "/books/sales/invoice" },
         { name: "Delivery Challan", href: "/books/sales/challans" },
+        { name: "Customers_trans", href: "/books/sales/customers_trans"}
       ],
     },
     {
       name: "Purchase",
       icon: <ShoppingCart size={18} />,
-      subItems: [],
-      href: "/books/purchase",
+      subItems: [
+        { name: "Vendors", href: "/books/purchase/vendors" },
+        { name: "Bills", href: "/books/purchase/bills" },
+      ],
+
     },
     {
       name: "Reports",
