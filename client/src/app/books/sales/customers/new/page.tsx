@@ -28,10 +28,10 @@ type TabKey =
 
 type ContactPerson = {
   salutation: string;
-  firstName: string;
-  lastName: string;
+  first_name: string;
+  last_name: string;
   email: string;
-  workPhone: string;
+  work_phone: string;
   mobile: string;
 };
 
@@ -125,10 +125,10 @@ export default function NewCustomerPage() {
   const [contactPersons, setContactPersons] = useState<ContactPerson[]>([
     {
       salutation: "",
-      firstName: "",
-      lastName: "",
+      first_name: "",
+      last_name: "",
       email: "",
-      workPhone: "",
+      work_phone: "",
       mobile: "",
     },
   ]);
@@ -189,10 +189,10 @@ export default function NewCustomerPage() {
       ...arr,
       {
         salutation: "",
-        firstName: "",
-        lastName: "",
+        first_name: "",
+        last_name: "",
         email: "",
-        workPhone: "",
+        work_phone: "",
         mobile: "",
       },
     ]);
@@ -241,35 +241,78 @@ export default function NewCustomerPage() {
     return Object.keys(next).length === 0;
   }
 
-async function saveCustomer() {
-  if (!validate()) return;
+  async function saveCustomer() {
+    if (!validate()) return;
 
-  // Match backend serializer fields here
-  const payload = {
-    name: displayName.trim(),
-    company_name: companyName,
-    email,
-    phone: workPhone,
-  };
+    // payload matching backend API fields exactly
+    const payload = {
+      customer_type: customerType.toLowerCase(), // "business" or "individual"
+      salutation: salutation.trim().toLowerCase(),
+      first_name: firstName.trim(),
+      last_name: lastName.trim(),
+      company_name: companyName.trim(),
+      display_name: displayName.trim(),
+      email: email.trim(),
+      work_phone: workPhone.trim(),
+      mobile: mobile.trim(),
+      pan: pan.trim(),
+      currency: currency.split(" - ")[0], // e.g. "INR"
+      opening_balance: openingBalance.toFixed(2), // string with two decimals
+      payment_terms: paymentTerms.toLowerCase().replace(/\s/g, "_"), // e.g. "net_30"
+      documents: documents.map(({ name, size, type }) => ({ name, size, type })),
+      billing_attention: billing.attention.trim(),
+      billing_country: billing.country.trim(),
+      billing_street1: billing.street1.trim(),
+      billing_street2: billing.street2.trim(),
+      billing_city: billing.city.trim(),
+      billing_state: billing.state.trim(),
+      billing_pin_code: billing.pinCode.trim(),
+      billing_phone: billing.phone.trim(),
+      billing_fax: billing.fax.trim(),
+      shipping_attention: shipping.attention.trim(),
+      shipping_country: shipping.country.trim(),
+      shipping_street1: shipping.street1.trim(),
+      shipping_street2: shipping.street2.trim(),
+      shipping_city: shipping.city.trim(),
+      shipping_state: shipping.state.trim(),
+      shipping_pin_code: shipping.pinCode.trim(),
+      shipping_phone: shipping.phone.trim(),
+      shipping_fax: shipping.fax.trim(),
+      contact_persons: contactPersons.map((cp) => ({
+        salutation: cp.salutation.trim(),
+        first_name: cp.first_name.trim(),
+        last_name: cp.last_name.trim(),
+        email: cp.email.trim(),
+        work_phone: cp.work_phone.trim(),
+        mobile: cp.mobile.trim(),
+      })),
+      custom_fields: Object.fromEntries(
+        customFields
+          .filter((cf) => cf.key.trim())
+          .map((cf) => [cf.key.trim(), cf.value.trim()])
+      ),
+      tags: reportingTags,
+      remarks: remarks.trim(),
+    };
 
-  try {
-    const res = await fetchWithAuth("https://bpm-production.up.railway.app/api/customers/", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    if (!res.ok) {
-      const errorData = await res.json();
-      alert("Failed to save customer: " + (errorData.detail || "Unknown error"));
-      return;
+    try {
+      const res = await fetchWithAuth("https://bpm-production.up.railway.app/api/customers/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const errorData = await res.json();
+        console.error("Backend validation error:", errorData);
+        alert("Failed to save customer: " + (errorData.detail || JSON.stringify(errorData)));
+        return;
+      }
+      router.push("/books/sales/customers");
+    } catch (err) {
+      alert("Error saving customer.");
+      console.error(err);
     }
-    router.push("/books/sales/customers");
-  } catch (err) {
-    alert("Error saving customer.");
-    console.error(err);
   }
-}
-
 
   // =================== UI ===================
   return (
@@ -572,15 +615,15 @@ async function saveCustomer() {
                 Billing Address
               </h3>
               {[
-                { label: "Attention", field: "attention" as const },
-                { label: "Country/Region", field: "country" as const, isSelect: true },
-                { label: "Street 1", field: "street1" as const },
-                { label: "Street 2", field: "street2" as const },
-                { label: "City", field: "city" as const },
-                { label: "State", field: "state" as const, isSelect: true },
-                { label: "Pin Code", field: "pinCode" as const },
-                { label: "Phone", field: "phone" as const },
-                { label: "Fax Number", field: "fax" as const },
+                { label: "Attention", field: "attention" as keyof Address },
+                { label: "Country/Region", field: "country" as keyof Address, isSelect: true },
+                { label: "Street 1", field: "street1" as keyof Address },
+                { label: "Street 2", field: "street2" as keyof Address },
+                { label: "City", field: "city" as keyof Address },
+                { label: "State", field: "state" as keyof Address, isSelect: true },
+                { label: "Pin Code", field: "pinCode" as keyof Address },
+                { label: "Phone", field: "phone" as keyof Address },
+                { label: "Fax Number", field: "fax" as keyof Address },
               ].map((row) => (
                 <div className="mb-3" key={`bill-${row.field}`}>
                   <label className="block mb-1 font-medium text-green-800">
@@ -620,15 +663,15 @@ async function saveCustomer() {
                 </button>
               </h3>
               {[
-                { label: "Attention", field: "attention" as const },
-                { label: "Country/Region", field: "country" as const, isSelect: true },
-                { label: "Street 1", field: "street1" as const },
-                { label: "Street 2", field: "street2" as const },
-                { label: "City", field: "city" as const },
-                { label: "State", field: "state" as const, isSelect: true },
-                { label: "Pin Code", field: "pinCode" as const },
-                { label: "Phone", field: "phone" as const },
-                { label: "Fax Number", field: "fax" as const },
+                { label: "Attention", field: "attention" as keyof Address },
+                { label: "Country/Region", field: "country" as keyof Address, isSelect: true },
+                { label: "Street 1", field: "street1" as keyof Address },
+                { label: "Street 2", field: "street2" as keyof Address },
+                { label: "City", field: "city" as keyof Address },
+                { label: "State", field: "state" as keyof Address, isSelect: true },
+                { label: "Pin Code", field: "pinCode" as keyof Address },
+                { label: "Phone", field: "phone" as keyof Address },
+                { label: "Fax Number", field: "fax" as keyof Address },
               ].map((row) => (
                 <div className="mb-3" key={`ship-${row.field}`}>
                   <label className="block mb-1 font-medium text-green-800">
@@ -694,18 +737,18 @@ async function saveCustomer() {
                       <td className="px-3 py-2">
                         <input
                           className="w-full px-2 py-1 border border-green-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
-                          value={cp.firstName}
+                          value={cp.first_name}
                           onChange={(e) =>
-                            updateCP(idx, { firstName: e.target.value })
+                            updateCP(idx, { first_name: e.target.value })
                           }
                         />
                       </td>
                       <td className="px-3 py-2">
                         <input
                           className="w-full px-2 py-1 border border-green-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
-                          value={cp.lastName}
+                          value={cp.last_name}
                           onChange={(e) =>
-                            updateCP(idx, { lastName: e.target.value })
+                            updateCP(idx, { last_name: e.target.value })
                           }
                         />
                       </td>
@@ -725,9 +768,9 @@ async function saveCustomer() {
                           <FaPhone className="mr-2 text-green-500" />
                           <input
                             className="w-full py-1 outline-none"
-                            value={cp.workPhone}
+                            value={cp.work_phone}
                             onChange={(e) =>
-                              updateCP(idx, { workPhone: e.target.value })
+                              updateCP(idx, { work_phone: e.target.value })
                             }
                           />
                         </div>
@@ -879,7 +922,7 @@ async function saveCustomer() {
         )}
 
         {/* Footer buttons */}
-        <div className="sticky bottom-0 flex justify-end gap-3 pt-4 mt-8 border-t border-green-100">
+        <div className="sticky bottom-0 flex justify-end gap-3 pt-4 mt-8 border-t border-green-100 bg-white">
           <button
             onClick={saveCustomer}
             className="px-6 py-2 font-medium text-white bg-green-600 rounded-md hover:bg-green-700"

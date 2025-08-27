@@ -88,7 +88,7 @@ function Home({ onConnect, onManual }: HomeProps) {
         <button className="btn btn-ghost" onClick={onManual}>Add Manually</button>
       </div>
       <div style={{ height: 14 }} />
-      <div className="hint">Don't use banking for your business? <span style={{ color: 'var(--g-700)', fontWeight: 700, cursor: 'pointer' }}>Skip</span></div>
+      <div className="hint">Don&apos;t use banking for your business? <span style={{ color: 'var(--g-700)', fontWeight: 700, cursor: 'pointer' }}>Skip</span></div>
       <div className="divider" />
       <div className="row"></div>
     </div>

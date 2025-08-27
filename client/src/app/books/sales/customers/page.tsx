@@ -7,10 +7,10 @@ import { fetchWithAuth } from "@/auth/tokenservice";
 
 type Customer = {
   id: number;
-  name: string;
+  display_name: string;
   company_name: string;
   email: string;
-  phone: string;
+  work_phone: string;
 };
 
 export default function CustomersPage() {
@@ -83,10 +83,10 @@ export default function CustomersPage() {
             {customers.length > 0 ? (
               customers.map((c) => (
                 <tr key={c.id} className="hover:bg-green-50">
-                  <td className="px-4 py-2 border">{c.name}</td>
+                  <td className="px-4 py-2 border">{c.display_name}</td>
                   <td className="px-4 py-2 border">{c.company_name}</td>
                   <td className="px-4 py-2 border">{c.email}</td>
-                  <td className="px-4 py-2 border">{c.phone}</td>
+                  <td className="px-4 py-2 border">{c.work_phone}</td>
                   <td className="flex gap-3 px-4 py-2 border">
                     <button className="text-green-600 hover:text-green-800">
                       <FaEdit />

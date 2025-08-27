@@ -182,7 +182,7 @@ export default function NewBillDrawer({ open, onClose, onSaved }: Props) {
 
             <div className="grid gap-2">
               <label className="text-sm text-gray-600">Status</label>
-              <select className={input} value={status} onChange={(e) => setStatus(e.target.value as any)}>
+              <select className={input} value={status} onChange={(e) => setStatus(e.target.value as Bill["status"])}>
                 <option value="PAID">PAID</option>
                 <option value="UNPAID">UNPAID</option>
                 <option value="PARTIAL">PARTIAL</option>

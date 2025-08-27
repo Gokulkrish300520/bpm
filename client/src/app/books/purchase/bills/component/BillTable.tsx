@@ -15,7 +15,9 @@ const statusColor: Record<Bill["status"], string> = {
 export default function BillTable({ bills }: Props) {
   const router = useRouter();
 
-  const hasAttachments = (bill: Bill) => Boolean((bill as any).meta?.files?.length);
+  const hasAttachments = (bill: Bill & { meta?: { files?: string[] } }) =>
+  Boolean(bill.meta?.files?.length);
+
 
   return (
     <div className="overflow-x-auto border rounded-2xl bg-white">
