@@ -38,6 +38,7 @@ ALLOWED_HOSTS = [
     '127.0.0.1',
     'bpm-production.up.railway.app',
     'glonix-frontend-indol.vercel.app',
+    'bom-front.vercel.app'
 ]
 
 
@@ -75,6 +76,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:8000",
     "https://bpm-production.up.railway.app",
     "https://glonix-frontend-indol.vercel.app",
+    "https://bom-front.vercel.app"
     # Add other addresses if needed
 ]
 
