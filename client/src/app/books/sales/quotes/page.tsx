@@ -6,11 +6,11 @@ import { fetchWithAuth } from "@/auth/tokenservice";
 
 type CustomerType = {
   id: number;
-  name: string;
+  display_name: string;
   email: string;
   company_name: string;
-  address: string;
-  phone: string;
+  address?: string; // optional since your JSON may not have 'address'
+  phone?: string; // optional as well
   created_at: string;
 };
 
@@ -20,11 +20,16 @@ type Quote = {
   id: number;
   customer: CustomerType; // nested customer object
   quote_number: string;
-  date: string;
-  valid_until: string;
-  amount: string | number;
+  reference_number: string;
+  quote_date: string;      // updated to match API field name
+  expiry_date: string;
+  salesperson: string;
+  project_name: string;
+  subject: string;    // updated to match API field name
+  total_amount: string | number;
   status: QuoteStatus;
-  notes: string;
+  customer_notes: string;  // updated to match API field name for notes
+  terms_and_conditions?: string; // optional if needed
   created_at: string;
 };
 
@@ -57,8 +62,10 @@ export default function QuotesPage() {
       return dateStr;
     }
   };
-if (loading) return <p>Loading customers...</p>;
-if (error) return <p className="text-red-600">{error}</p>;
+
+  if (loading) return <p>Loading quotes...</p>;
+  if (error) return <p className="text-red-600">{error}</p>;
+
   return (
     <div className="min-h-screen p-6 bg-green-50">
       <div className="flex items-center justify-between mb-6">
@@ -69,7 +76,6 @@ if (error) return <p className="text-red-600">{error}</p>;
           </button>
         </Link>
       </div>
-
 
       <div className="overflow-hidden shadow rounded-xl">
         <table className="w-full border-collapse">
@@ -95,9 +101,9 @@ if (error) return <p className="text-red-600">{error}</p>;
                   key={q.id}
                   className={`${idx % 2 ? "bg-green-100" : "bg-green-50"} border-b`}
                 >
-                  <td className="p-3">{formatDate(q.date)}</td>
+                  <td className="p-3">{formatDate(q.quote_date)}</td>
                   <td className="p-3">{q.quote_number}</td>
-                  <td className="p-3">{q.customer.name}</td>
+                  <td className="p-3">{q.customer.display_name}</td>
                   <td className="p-3">
                     <span
                       className={`px-2 py-1 rounded text-sm ${
@@ -113,7 +119,7 @@ if (error) return <p className="text-red-600">{error}</p>;
                       {q.status.charAt(0).toUpperCase() + q.status.slice(1)}
                     </span>
                   </td>
-                  <td className="p-3">₹{q.amount}</td>
+                  <td className="p-3">₹{q.total_amount}</td>
                 </tr>
               ))
             )}

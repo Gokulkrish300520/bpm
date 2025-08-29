@@ -38,7 +38,8 @@ ALLOWED_HOSTS = [
     '127.0.0.1',
     'bpm-production.up.railway.app',
     'glonix-frontend-indol.vercel.app',
-    'bom-front.vercel.app'
+    'bom-front.vercel.app',
+
 ]
 
 
