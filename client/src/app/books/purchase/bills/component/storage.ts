@@ -46,7 +46,7 @@ export const storage = {
   },
   upsertVendor(v: Vendor): Vendor {
     const all = storage.getVendors();
-    const idx = all.findIndex((x) => x.id === (v as any).id);
+    const idx = all.findIndex((x) => x.id === v.id);
     const next = idx >= 0 ? [...all.slice(0, idx), v, ...all.slice(idx + 1)] : [v, ...all];
     storage.setVendors(next);
     return v;
