@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { fetchWithAuth } from "@/auth/tokenservice";
+import { FaPlus, FaEdit } from "react-icons/fa";
 
 type CustomerType = {
   id: number;
@@ -36,10 +37,12 @@ export default function QuotesPage() {
   useEffect(() => {
     async function loadQuotes() {
       try {
-        const res = await fetchWithAuth("https://bpm-production.up.railway.app/api/quotes/");
+        const res = await fetchWithAuth(
+          "https://bpm-production.up.railway.app/api/quotes/"
+        );
         if (!res.ok) throw new Error("Failed to fetch quotes");
         const data = await res.json();
-        setQuotes(data.results);
+        setQuotes(data.results || []);
       } catch (err) {
         setError("Failed to load quotes");
         console.error(err);
@@ -57,21 +60,23 @@ export default function QuotesPage() {
       return dateStr;
     }
   };
-if (loading) return <p>Loading customers...</p>;
-if (error) return <p className="text-red-600">{error}</p>;
+
+  if (loading) return <p>Loading quotes...</p>;
+  if (error) return <p className="text-red-600">{error}</p>;
+
   return (
     <div className="min-h-screen p-6 bg-green-50">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-green-800">All Quotes</h1>
         <Link href="/books/sales/quotes/new">
           <button className="px-4 py-2 text-white bg-green-600 rounded-lg shadow hover:bg-green-700">
-            + New
+            <FaPlus className="inline mr-2" />
+            New
           </button>
         </Link>
       </div>
 
-
-      <div className="overflow-hidden shadow rounded-xl">
+      <div className="overflow-hidden shadow rounded-xl bg-white">
         <table className="w-full border-collapse">
           <thead className="text-green-900 bg-green-200">
             <tr>
@@ -80,12 +85,13 @@ if (error) return <p className="text-red-600">{error}</p>;
               <th className="p-3 text-left">Customer Name</th>
               <th className="p-3 text-left">Status</th>
               <th className="p-3 text-left">Amount</th>
+              <th className="p-3 text-left">Actions</th>
             </tr>
           </thead>
           <tbody>
             {quotes.length === 0 ? (
               <tr>
-                <td colSpan={5} className="p-4 text-center text-gray-500 bg-white">
+                <td colSpan={6} className="p-4 text-center text-gray-500">
                   No quotes found
                 </td>
               </tr>
@@ -114,6 +120,11 @@ if (error) return <p className="text-red-600">{error}</p>;
                     </span>
                   </td>
                   <td className="p-3">₹{q.amount}</td>
+                  <td className="p-3 text-green-600 hover:text-green-800">
+                    <Link href={`/books/sales/quotes/${q.id}/edit`} passHref>
+                        <FaEdit />
+                    </Link>
+                  </td>
                 </tr>
               ))
             )}
