@@ -88,9 +88,9 @@ export default function CustomersPage() {
                   <td className="px-4 py-2 border">{c.email}</td>
                   <td className="px-4 py-2 border">{c.work_phone}</td>
                   <td className="flex gap-3 px-4 py-2 border">
-                    <button className="text-green-600 hover:text-green-800">
+                    <Link href={`/books/sales/customers/${c.id}/edit`} className="text-green-600 hover:text-green-800">
                       <FaEdit />
-                    </button>
+                    </Link>
                     <button
                       onClick={() => deleteCustomer(c.id)}
                       className="text-red-600 hover:text-red-800"
