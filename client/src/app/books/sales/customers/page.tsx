@@ -83,7 +83,9 @@ export default function CustomersPage() {
             {customers.length > 0 ? (
               customers.map((c) => (
                 <tr key={c.id} className="hover:bg-green-50">
-                  <td className="px-4 py-2 border">{c.display_name}</td>
+                  <td className="px-4 py-2 border">
+                    <Link href={`/books/sales/customers/${c.id}`}>{c.display_name}</Link>
+                  </td>
                   <td className="px-4 py-2 border">{c.company_name}</td>
                   <td className="px-4 py-2 border">{c.email}</td>
                   <td className="px-4 py-2 border">{c.work_phone}</td>
