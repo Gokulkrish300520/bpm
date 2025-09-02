@@ -1,4 +1,4 @@
-from background_tasks import background
+from background_task import background
 from core.models import Invoice, Bill, Payment, DailySummary
 from django.db.models import Sum
 from datetime import date, timedelta
