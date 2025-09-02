@@ -1,5 +1,12 @@
 #!/bin/bash
 
+# Update apt repositories and install system libs required by WeasyPrint
+apt-get update && apt-get install -y \
+    libcairo2 \
+    libpango-1.0-0 \
+    libgdk-pixbuf2.0-0 \
+    libffi-dev
+
 # Collect static files
 python manage.py collectstatic --noinput
 
