@@ -386,27 +386,27 @@ class ProfitAndLossReportView(APIView):
             response["compare_report"] = compare_data
         return Response(response)
 
-@api_view(['GET'])
-@permission_classes([permissions.IsAuthenticated])
-def quote_pdf_view(request, quote_id):
-    quote = get_object_or_404(Quote.objects.prefetch_related('item_details__item'), pk=quote_id)
-    Subtotal = float(quote.subtotal)
-    cgst_amount = round(Subtotal * 0.09, 2)
-    sgst_amount = round(Subtotal * 0.09, 2)
-    total = round(Subtotal + cgst_amount + sgst_amount, 2)
-    context = {
-        'quote': quote,
-        'cgst_amount': cgst_amount,
-        'sgst_amount': sgst_amount,
-        'total_amount': total,
-        }
+# @api_view(['GET'])
+# @permission_classes([permissions.IsAuthenticated])
+# def quote_pdf_view(request, quote_id):
+#     quote = get_object_or_404(Quote.objects.prefetch_related('item_details__item'), pk=quote_id)
+#     Subtotal = float(quote.subtotal)
+#     cgst_amount = round(Subtotal * 0.09, 2)
+#     sgst_amount = round(Subtotal * 0.09, 2)
+#     total = round(Subtotal + cgst_amount + sgst_amount, 2)
+#     context = {
+#         'quote': quote,
+#         'cgst_amount': cgst_amount,
+#         'sgst_amount': sgst_amount,
+#         'total_amount': total,
+#         }
 
-    html_string = render_to_string('quotes/quote_pdf.html', context)
+#     html_string = render_to_string('quotes/quote_pdf.html', context)
 
-    pdf_file = BytesIO()
-    HTML(string=html_string, base_url=request.build_absolute_uri('/')).write_pdf(target=pdf_file)
-    pdf_file.seek(0)
+#     pdf_file = BytesIO()
+#     HTML(string=html_string, base_url=request.build_absolute_uri('/')).write_pdf(target=pdf_file)
+#     pdf_file.seek(0)
 
-    response = HttpResponse(pdf_file, content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="quote_{quote.quote_number}.pdf"'
-    return response
+#     response = HttpResponse(pdf_file, content_type='application/pdf')
+#     response['Content-Disposition'] = f'attachment; filename="quote_{quote.quote_number}.pdf"'
+#     return response

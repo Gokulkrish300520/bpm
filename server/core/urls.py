@@ -15,7 +15,7 @@ from .views import (
     CustomerDocumentViewSet,
     ProfitAndLossReportView,
     BalanceSheetReportView,
-    quote_pdf_view
+    # quote_pdf_view
 )
 
 
@@ -48,5 +48,5 @@ urlpatterns = [
     path("", include(router.urls)),
     path("reports/profit-and-loss/", ProfitAndLossReportView.as_view(), name="profit-and-loss-report"),
     path("reports/balance-sheet/", BalanceSheetReportView.as_view(), name="balance-sheet-report"),
-    path('quotes/<int:quote_id>/pdf/', quote_pdf_view, name='quote-pdf'),
+    # path('quotes/<int:quote_id>/pdf/', quote_pdf_view, name='quote-pdf'),
 ]
