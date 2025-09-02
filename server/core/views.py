@@ -1,9 +1,3 @@
-from django.shortcuts import get_object_or_404
-from rest_framework.decorators import api_view, permission_classes
-from django.template.loader import render_to_string
-from weasyprint import HTML
-from django.http import HttpResponse
-from io import BytesIO
 from django.core.cache import cache
 import hashlib
 import json
