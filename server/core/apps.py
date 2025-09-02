@@ -1,5 +1,6 @@
 from django.apps import AppConfig
-
+from django.db.models.signals import post_migrate
+from django.dispatch import receiver
 
 class CoreConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
@@ -8,10 +9,12 @@ class CoreConfig(AppConfig):
     def ready(self):
         import core.signals  # noqa
         from core.background_tasks import preaggregate_daily_summaries
-        # Schedule the background task to run daily if not already scheduled
-        try:
-            from background_task.models import Task
-            if not Task.objects.filter(task_name="core.background_tasks.preaggregate_daily_summaries").exists():
-                preaggregate_daily_summaries(repeat=86400)  # every 24 hours
-        except Exception:
-            pass
+        from background_task.models import Task
+
+        @receiver(post_migrate, sender=self)
+        def schedule_task(sender, **kwargs):
+            try:
+                if not Task.objects.filter(task_name="core.background_tasks.preaggregate_daily_summaries").exists():
+                    preaggregate_daily_summaries(repeat=86400)  # every 24 hours
+            except Exception:
+                pass
