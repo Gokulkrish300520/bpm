@@ -10,7 +10,8 @@ import {
   PieChart,
   ChevronDown,
   ChevronRight,
-} from "lucide-react";
+  Repeat,
+} from "lucide-react"; // Added Repeat for Transactions icon
 import { useState, useEffect } from "react";
 
 export default function BooksLayout({ children }: { children: React.ReactNode }) {
@@ -21,10 +22,7 @@ export default function BooksLayout({ children }: { children: React.ReactNode })
     {
       name: "Items",
       icon: <Package size={18} />,
-      subItems: [
-        { name: "Items", href: "/books/items" },
-        { name: "Inventory Adjustments", href: "/books/items/adjustments" },
-      ],
+      subItems: [{ name: "Items", href: "/books/items" }],
     },
     {
       name: "Banking",
@@ -38,10 +36,9 @@ export default function BooksLayout({ children }: { children: React.ReactNode })
       subItems: [
         { name: "Customers", href: "/books/sales/customers" },
         { name: "Quotes", href: "/books/sales/quotes" },
-        { name: "proforma Invoices", href: "/books/sales/proforma-invoice" },
+        { name: "Proforma Invoices", href: "/books/sales/proforma-invoice" },
         { name: "Invoice", href: "/books/sales/invoice" },
         { name: "Delivery Challan", href: "/books/sales/challans" },
-        { name: "Customers_trans", href: "/books/sales/customers_trans"}
       ],
     },
     {
@@ -51,7 +48,12 @@ export default function BooksLayout({ children }: { children: React.ReactNode })
         { name: "Vendors", href: "/books/purchase/vendors" },
         { name: "Bills", href: "/books/purchase/bills" },
       ],
-
+    },
+    {
+      name: "Transactions",
+      icon: <Repeat size={18} />,
+      subItems: [],
+      href: "/books/transactions",
     },
     {
       name: "Reports",
@@ -61,7 +63,6 @@ export default function BooksLayout({ children }: { children: React.ReactNode })
     },
   ];
 
-  // Auto-expand parent if current route matches a subItem
   useEffect(() => {
     menuItems.forEach((item) => {
       if (item.subItems.some((sub) => pathname === sub.href)) {
@@ -78,7 +79,6 @@ export default function BooksLayout({ children }: { children: React.ReactNode })
     <div className="flex min-h-screen font-sans">
       {/* Sidebar */}
       <div className="flex flex-col w-64 bg-white border-r border-gray-200">
-        {/* Logo */}
         <div className="px-4 py-3 border-b border-gray-200">
           <h1 className="text-lg font-semibold text-green-600">Zoho Books</h1>
         </div>
@@ -92,7 +92,6 @@ export default function BooksLayout({ children }: { children: React.ReactNode })
 
             return (
               <div key={item.name}>
-                {/* Parent item */}
                 {item.subItems.length > 0 ? (
                   <div
                     onClick={() => toggleExpand(item.name)}
@@ -126,7 +125,6 @@ export default function BooksLayout({ children }: { children: React.ReactNode })
                   </Link>
                 )}
 
-                {/* Submenu */}
                 {expanded === item.name && item.subItems.length > 0 && (
                   <div className="mt-1 ml-10">
                     {item.subItems.map((sub) => (

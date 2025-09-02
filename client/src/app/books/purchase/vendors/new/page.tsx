@@ -2,22 +2,19 @@
 
 import { useRouter } from "next/navigation";
 import { useState, ChangeEvent } from "react";
-import { fetchWithAuth } from "@/auth/tokenservice";
-
 import {
   FaUser,
   FaEnvelope,
   FaPhone,
   FaUpload,
   FaInfoCircle,
-  FaMoneyBill,
-  FaTag,
   FaTrash,
   FaCopy,
   FaPlus,
+  FaTag,
 } from "react-icons/fa";
 
-type CustomerType = "Business" | "Individual";
+type VendorType = "Business" | "Individual";
 type TabKey =
   | "Other Details"
   | "Address"
@@ -28,10 +25,10 @@ type TabKey =
 
 type ContactPerson = {
   salutation: string;
-  first_name: string;
-  last_name: string;
+  firstName: string;
+  lastName: string;
   email: string;
-  work_phone: string;
+  workPhone: string;
   mobile: string;
 };
 
@@ -48,7 +45,6 @@ type Address = {
 };
 
 type FileMeta = { name: string; size: number; type: string };
-
 type CustomField = { key: string; value: string };
 
 const CURRENCY_OPTIONS = [
@@ -66,35 +62,19 @@ const CURRENCY_OPTIONS = [
   "ZAR - South African Rand",
 ];
 
-const STATES = [
-  "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh",
-  "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand",
-  "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur",
-  "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab", "Rajasthan",
-  "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh",
-  "Uttarakhand", "West Bengal", "Andaman and Nicobar Islands", "Chandigarh",
-  "Dadra and Nagar Haveli and Daman and Diu", "Delhi", "Jammu and Kashmir",
-  "Ladakh", "Lakshadweep", "Puducherry"
-];
-
-const COUNTRIES = [
-  "India", "United States", "United Kingdom", "Australia", "Canada", "Singapore", "Germany"
-];
-
-
 const PAYMENT_TERMS = ["Due on Receipt", "Net 7", "Net 15", "Net 30", "Net 45"];
 
-export default function NewCustomerPage() {
+export default function NewVendorPage() {
   const router = useRouter();
 
-  // ----- Global UI helpers -----
+  // ----- UI helpers -----
   const inputBase =
     "w-full rounded-md border border-green-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500";
   const withIcon =
     "flex items-center rounded-md border border-green-300 px-3 focus-within:ring-2 focus-within:ring-green-500";
 
   // ----- Primary / Header state -----
-  const [customerType, setCustomerType] = useState<CustomerType>("Business");
+  const [vendorType, setVendorType] = useState<VendorType>("Business");
 
   const [salutation, setSalutation] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -107,7 +87,7 @@ export default function NewCustomerPage() {
   const [mobile, setMobile] = useState("");
 
   // ----- Other Details -----
-  const [pan, setPan] = useState("");
+  const [taxId, setTaxId] = useState(""); // GST/VAT/PAN as needed
   const [currency, setCurrency] = useState("INR - Indian Rupee");
   const [openingBalance, setOpeningBalance] = useState<number>(0);
   const [paymentTerms, setPaymentTerms] = useState("Due on Receipt");
@@ -141,10 +121,10 @@ export default function NewCustomerPage() {
   const [contactPersons, setContactPersons] = useState<ContactPerson[]>([
     {
       salutation: "",
-      first_name: "",
-      last_name: "",
+      firstName: "",
+      lastName: "",
       email: "",
-      work_phone: "",
+      workPhone: "",
       mobile: "",
     },
   ]);
@@ -168,10 +148,9 @@ export default function NewCustomerPage() {
   );
 
   // =================== Handlers ===================
-
   function onDocsSelected(e: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files || []);
-    // Limit: max 10 files, 10MB each (store meta only)
+    // max 10 files, 10MB each (store meta only)
     const withinLimit = files.filter((f) => f.size <= 10 * 1024 * 1024).slice(0, 10);
     const metas: FileMeta[] = withinLimit.map((f) => ({
       name: f.name,
@@ -205,10 +184,10 @@ export default function NewCustomerPage() {
       ...arr,
       {
         salutation: "",
-        first_name: "",
-        last_name: "",
+        firstName: "",
+        lastName: "",
         email: "",
-        work_phone: "",
+        workPhone: "",
         mobile: "",
       },
     ]);
@@ -257,77 +236,45 @@ export default function NewCustomerPage() {
     return Object.keys(next).length === 0;
   }
 
-  async function saveCustomer() {
+  function saveVendor() {
     if (!validate()) return;
 
-    // payload matching backend API fields exactly
-    const payload = {
-      customer_type: customerType.toLowerCase(), // "business" or "individual"
-      salutation: salutation.trim().toLowerCase(),
-      first_name: firstName.trim(),
-      last_name: lastName.trim(),
-      company_name: companyName.trim(),
-      display_name: displayName.trim(),
-      email: email.trim(),
-      work_phone: workPhone.trim(),
-      mobile: mobile.trim(),
-      pan: pan.trim(),
-      currency: currency.split(" - ")[0], // e.g. "INR"
-      opening_balance: openingBalance.toFixed(2), // string with two decimals
-      payment_terms: paymentTerms.toLowerCase().replace(/\s/g, "_"), // e.g. "net_30"
-      documents: documents.map(({ name, size, type }) => ({ name, size, type })),
-      billing_attention: billing.attention.trim(),
-      billing_country: billing.country.trim(),
-      billing_street1: billing.street1.trim(),
-      billing_street2: billing.street2.trim(),
-      billing_city: billing.city.trim(),
-      billing_state: billing.state.trim(),
-      billing_pin_code: billing.pinCode.trim(),
-      billing_phone: billing.phone.trim(),
-      billing_fax: billing.fax.trim(),
-      shipping_attention: shipping.attention.trim(),
-      shipping_country: shipping.country.trim(),
-      shipping_street1: shipping.street1.trim(),
-      shipping_street2: shipping.street2.trim(),
-      shipping_city: shipping.city.trim(),
-      shipping_state: shipping.state.trim(),
-      shipping_pin_code: shipping.pinCode.trim(),
-      shipping_phone: shipping.phone.trim(),
-      shipping_fax: shipping.fax.trim(),
-      contact_persons: contactPersons.map((cp) => ({
-        salutation: cp.salutation.trim(),
-        first_name: cp.first_name.trim(),
-        last_name: cp.last_name.trim(),
-        email: cp.email.trim(),
-        work_phone: cp.work_phone.trim(),
-        mobile: cp.mobile.trim(),
-      })),
-      custom_fields: Object.fromEntries(
-        customFields
-          .filter((cf) => cf.key.trim())
-          .map((cf) => [cf.key.trim(), cf.value.trim()])
-      ),
-      tags: reportingTags,
-      remarks: remarks.trim(),
+    const vendor = {
+      id: Date.now(),
+      createdAt: new Date().toISOString(),
+      type: vendorType,
+
+      salutation,
+      firstName,
+      lastName,
+      companyName,
+      displayName,
+
+      email,
+      workPhone,
+      mobile,
+
+      taxId,
+      currency,
+      openingBalance,
+      paymentTerms,
+      documents, // meta only
+
+      billing,
+      shipping,
+
+      contactPersons,
+      customFields,
+      reportingTags,
+
+      remarks,
     };
 
-    try {
-      const res = await fetchWithAuth("https://bpm-production.up.railway.app/api/customers/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        const errorData = await res.json();
-        console.error("Backend validation error:", errorData);
-        alert("Failed to save customer: " + (errorData.detail || JSON.stringify(errorData)));
-        return;
-      }
-      router.push("/books/sales/customers");
-    } catch (err) {
-      alert("Error saving customer.");
-      console.error(err);
-    }
+    const existing = JSON.parse(localStorage.getItem("vendors") || "[]");
+    existing.push(vendor);
+    localStorage.setItem("vendors", JSON.stringify(existing));
+
+    router.push("/books/purchase/vendors");
   }
 
   // =================== UI ===================
@@ -335,20 +282,20 @@ export default function NewCustomerPage() {
     <div className="min-h-screen p-6 bg-green-50 sm:p-8">
       <div className="max-w-6xl p-6 mx-auto bg-white border border-green-200 rounded-lg shadow">
         {/* Header */}
-        <h1 className="mb-6 text-2xl font-semibold text-green-700">New Customer</h1>
+        <h1 className="mb-6 text-2xl font-semibold text-green-700">New Vendor</h1>
 
-        {/* Customer Type */}
+        {/* Vendor Type */}
         <div className="mb-5">
           <label className="block mb-2 font-medium text-green-800">
-            Customer Type
+            Vendor Type
           </label>
           <div className="flex gap-8">
             <label className="flex items-center gap-2 text-green-800">
               <input
                 type="radio"
                 className="text-green-600 focus:ring-green-600"
-                checked={customerType === "Business"}
-                onChange={() => setCustomerType("Business")}
+                checked={vendorType === "Business"}
+                onChange={() => setVendorType("Business")}
               />
               Business
             </label>
@@ -356,8 +303,8 @@ export default function NewCustomerPage() {
               <input
                 type="radio"
                 className="text-green-600 focus:ring-green-600"
-                checked={customerType === "Individual"}
-                onChange={() => setCustomerType("Individual")}
+                checked={vendorType === "Individual"}
+                onChange={() => setVendorType("Individual")}
               />
               Individual
             </label>
@@ -505,14 +452,14 @@ export default function NewCustomerPage() {
         {/* =========== OTHER DETAILS TAB =========== */}
         {activeTab === "Other Details" && (
           <div className="mt-5 space-y-4">
-            {/* PAN */}
+            {/* Tax ID */}
             <div>
-              <label className="block mb-1 font-medium text-green-800">PAN</label>
+              <label className="block mb-1 font-medium text-green-800">Tax ID</label>
               <input
                 type="text"
                 className={inputBase}
-                value={pan}
-                onChange={(e) => setPan(e.target.value.toUpperCase())}
+                value={taxId}
+                onChange={(e) => setTaxId(e.target.value)}
               />
             </div>
 
@@ -605,7 +552,10 @@ export default function NewCustomerPage() {
                       className="flex items-center justify-between px-3 py-2 border border-green-200 rounded-md"
                     >
                       <span className="truncate">
-                        {d.name} <span className="text-xs text-green-700">({Math.ceil(d.size / 1024)} KB)</span>
+                        {d.name}{" "}
+                        <span className="text-xs text-green-700">
+                          ({Math.ceil(d.size / 1024)} KB)
+                        </span>
                       </span>
                       <button
                         className="text-red-600 hover:underline"
@@ -623,127 +573,106 @@ export default function NewCustomerPage() {
         )}
 
         {/* =========== ADDRESS TAB =========== */}
-{activeTab === "Address" && (
-  <div className="grid grid-cols-1 gap-10 mt-6 md:grid-cols-2">
-    {/* Billing Address */}
-    <div>
-      <h3 className="mb-4 text-lg font-semibold text-green-700">
-        Billing Address
-      </h3>
-      {/* Country/Region */}
-      <div className="mb-3">
-        <label className="block mb-1 font-medium text-green-800">Country/Region</label>
-        <select
-          className={inputBase}
-          value={billing.country}
-          onChange={e => updateAddress("billing", "country")(e.target.value)}
-        >
-          <option value="">Select</option>
-          {COUNTRIES.map((country) => (
-            <option key={country} value={country}>{country}</option>
-          ))}
-        </select>
-      </div>
-      {/* State */}
-      <div className="mb-3">
-        <label className="block mb-1 font-medium text-green-800">State</label>
-        <select
-          className={inputBase}
-          value={billing.state}
-          onChange={e => updateAddress("billing", "state")(e.target.value)}
-        >
-          <option value="">Select</option>
-          {STATES.map((state) => (
-            <option key={state} value={state}>{state}</option>
-          ))}
-        </select>
-      </div>
-      {[
-        { label: "Attention", field: "attention" as keyof Address },
-        { label: "Street 1", field: "street1" as keyof Address },
-        { label: "Street 2", field: "street2" as keyof Address },
-        { label: "City", field: "city" as keyof Address },
-        { label: "Pin Code", field: "pinCode" as keyof Address },
-        { label: "Phone", field: "phone" as keyof Address },
-        { label: "Fax Number", field: "fax" as keyof Address },
-      ].map((row) => (
-        <div className="mb-3" key={`bill-${row.field}`}>
-          <label className="block mb-1 font-medium text-green-800">{row.label}</label>
-          <input
-            type="text"
-            className={inputBase}
-            placeholder={row.label}
-            value={billing[row.field]}
-            onChange={e => updateAddress("billing", row.field)(e.target.value)}
-          />
-        </div>
-      ))}
-    </div>
+        {activeTab === "Address" && (
+          <div className="grid grid-cols-1 gap-10 mt-6 md:grid-cols-2">
+            {/* Billing Address */}
+            <div>
+              <h3 className="mb-4 text-lg font-semibold text-green-700">
+                Billing Address
+              </h3>
+              {[
+                { label: "Attention", field: "attention" as const },
+                { label: "Country/Region", field: "country" as const, isSelect: true },
+                { label: "Street 1", field: "street1" as const },
+                { label: "Street 2", field: "street2" as const },
+                { label: "City", field: "city" as const },
+                { label: "State", field: "state" as const, isSelect: true },
+                { label: "Pin Code", field: "pinCode" as const },
+                { label: "Phone", field: "phone" as const },
+                { label: "Fax Number", field: "fax" as const },
+              ].map((row) => (
+                <div className="mb-3" key={`bill-${row.field}`}>
+                  <label className="block mb-1 font-medium text-green-800">
+                    {row.label}
+                  </label>
+                  {row.isSelect ? (
+                    <select
+                      className={inputBase}
+                      value={billing[row.field]}
+                      onChange={(e) =>
+                        updateAddress("billing", row.field)(e.target.value)
+                      }
+                    >
+                      <option value="">Select</option>
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      className={inputBase}
+                      placeholder={row.label}
+                      value={billing[row.field]}
+                      onChange={(e) =>
+                        updateAddress("billing", row.field)(e.target.value)
+                      }
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
 
-    {/* Shipping Address */}
-    <div>
-      <h3 className="mb-4 text-lg font-semibold text-green-700">
-        Shipping Address{" "}
-        <button
-          type="button"
-          className="inline-flex items-center gap-2 text-sm font-medium text-green-600 hover:underline"
-          onClick={copyBillingToShipping}
-        >
-          <FaCopy /> ( Copy billing address )
-        </button>
-      </h3>
-      {/* Country/Region */}
-      <div className="mb-3">
-        <label className="block mb-1 font-medium text-green-800">Country/Region</label>
-        <select
-          className={inputBase}
-          value={shipping.country}
-          onChange={e => updateAddress("shipping", "country")(e.target.value)}
-        >
-          <option value="">Select</option>
-          {COUNTRIES.map((country) => (
-            <option key={country} value={country}>{country}</option>
-          ))}
-        </select>
-      </div>
-      {/* State */}
-      <div className="mb-3">
-        <label className="block mb-1 font-medium text-green-800">State</label>
-        <select
-          className={inputBase}
-          value={shipping.state}
-          onChange={e => updateAddress("shipping", "state")(e.target.value)}
-        >
-          <option value="">Select</option>
-          {STATES.map((state) => (
-            <option key={state} value={state}>{state}</option>
-          ))}
-        </select>
-      </div>
-      {[
-        { label: "Attention", field: "attention" as keyof Address },
-        { label: "Street 1", field: "street1" as keyof Address },
-        { label: "Street 2", field: "street2" as keyof Address },
-        { label: "City", field: "city" as keyof Address },
-        { label: "Pin Code", field: "pinCode" as keyof Address },
-        { label: "Phone", field: "phone" as keyof Address },
-        { label: "Fax Number", field: "fax" as keyof Address },
-      ].map((row) => (
-        <div className="mb-3" key={`ship-${row.field}`}>
-          <label className="block mb-1 font-medium text-green-800">{row.label}</label>
-          <input
-            type="text"
-            className={inputBase}
-            placeholder={row.label}
-            value={shipping[row.field]}
-            onChange={e => updateAddress("shipping", row.field)(e.target.value)}
-          />
-        </div>
-      ))}
-    </div>
-  </div>
-)}
-
+            {/* Shipping Address */}
+            <div>
+              <h3 className="mb-4 text-lg font-semibold text-green-700">
+                Shipping Address{" "}
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-2 text-sm font-medium text-green-600 hover:underline"
+                  onClick={copyBillingToShipping}
+                >
+                  <FaCopy /> ( Copy billing address )
+                </button>
+              </h3>
+              {[
+                { label: "Attention", field: "attention" as const },
+                { label: "Country/Region", field: "country" as const, isSelect: true },
+                { label: "Street 1", field: "street1" as const },
+                { label: "Street 2", field: "street2" as const },
+                { label: "City", field: "city" as const },
+                { label: "State", field: "state" as const, isSelect: true },
+                { label: "Pin Code", field: "pinCode" as const },
+                { label: "Phone", field: "phone" as const },
+                { label: "Fax Number", field: "fax" as const },
+              ].map((row) => (
+                <div className="mb-3" key={`ship-${row.field}`}>
+                  <label className="block mb-1 font-medium text-green-800">
+                    {row.label}
+                  </label>
+                  {row.isSelect ? (
+                    <select
+                      className={inputBase}
+                      value={shipping[row.field]}
+                      onChange={(e) =>
+                        updateAddress("shipping", row.field)(e.target.value)
+                      }
+                    >
+                      <option value="">Select</option>
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      className={inputBase}
+                      placeholder={row.label}
+                      value={shipping[row.field]}
+                      onChange={(e) =>
+                        updateAddress("shipping", row.field)(e.target.value)
+                      }
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* =========== CONTACT PERSONS TAB =========== */}
         {activeTab === "Contact Persons" && (
@@ -782,18 +711,18 @@ export default function NewCustomerPage() {
                       <td className="px-3 py-2">
                         <input
                           className="w-full px-2 py-1 border border-green-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
-                          value={cp.first_name}
+                          value={cp.firstName}
                           onChange={(e) =>
-                            updateCP(idx, { first_name: e.target.value })
+                            updateCP(idx, { firstName: e.target.value })
                           }
                         />
                       </td>
                       <td className="px-3 py-2">
                         <input
                           className="w-full px-2 py-1 border border-green-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
-                          value={cp.last_name}
+                          value={cp.lastName}
                           onChange={(e) =>
-                            updateCP(idx, { last_name: e.target.value })
+                            updateCP(idx, { lastName: e.target.value })
                           }
                         />
                       </td>
@@ -813,9 +742,9 @@ export default function NewCustomerPage() {
                           <FaPhone className="mr-2 text-green-500" />
                           <input
                             className="w-full py-1 outline-none"
-                            value={cp.work_phone}
+                            value={cp.workPhone}
                             onChange={(e) =>
-                              updateCP(idx, { work_phone: e.target.value })
+                              updateCP(idx, { workPhone: e.target.value })
                             }
                           />
                         </div>
@@ -911,7 +840,7 @@ export default function NewCustomerPage() {
         {activeTab === "Reporting Tags" && (
           <div className="mt-6">
             <p className="flex items-center gap-2 mb-3 text-sm text-green-700">
-              <FaTag /> Add tags to group/filter customers in reports.
+              <FaTag /> Add tags to group/filter vendors in reports.
             </p>
             <div className="flex gap-2">
               <input
@@ -967,15 +896,15 @@ export default function NewCustomerPage() {
         )}
 
         {/* Footer buttons */}
-        <div className="sticky bottom-0 flex justify-end gap-3 pt-4 mt-8 border-t border-green-100 bg-white">
+        <div className="sticky bottom-0 flex justify-end gap-3 pt-4 mt-8 border-t border-green-100">
           <button
-            onClick={saveCustomer}
+            onClick={saveVendor}
             className="px-6 py-2 font-medium text-white bg-green-600 rounded-md hover:bg-green-700"
           >
-            Save Customer
+            Save Vendor
           </button>
           <button
-            onClick={() => router.push("/books/sales/customers")}
+            onClick={() => router.push("/books/purchase/vendors")}
             className="px-6 py-2 font-medium text-green-700 border border-green-300 rounded-md hover:bg-green-50"
           >
             Cancel

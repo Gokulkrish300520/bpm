@@ -1,355 +1,412 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { fetchWithAuth } from "@/auth/tokenservice";
 
-type ItemRow = { id: string; name: string; qty: number; rate: number };
+type Customer = {
+  id: number;
+  display_name: string;
+};
+
+type Item = {
+  id: number;
+  name: string;
+  price: string;  // stringified decimal from backend
+};
+
+type QuoteItemRow = {
+  id: string;
+  itemId: number | null;
+  name: string;
+  qty: number;
+  rate: number;
+};
 
 const STORAGE_KEY = "quotes";
 
-export default function NewQuotePage() {
+export default function NewQuote() {
   const router = useRouter();
 
+  // Customers fetched from API
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [loadingCustomers, setLoadingCustomers] = useState(true);
+  const [customerFetchError, setCustomerFetchError] = useState("");
+
+  // Items fetched from API
+  const [itemsList, setItemsList] = useState<Item[]>([]);
+  const [loadingItems, setLoadingItems] = useState(true);
+
   // Form state
+  const [selectedCustomerId, setSelectedCustomerId] = useState<number | "">("");
   const [customerName, setCustomerName] = useState("");
-  const [quoteNumber, setQuoteNumber] = useState(
-    "Q-" + (Math.floor(Date.now() / 1000) % 100000)
-  );
-  const [reference, setReference] = useState("");
+  const [quoteNumber, setQuoteNumber] = useState("Q-" + (Math.floor(Date.now() / 1000) % 100000));
+  const [reference, setReference] = useState("REF-" + (Math.floor(Date.now() / 1000) % 10000000));
   const [quoteDate, setQuoteDate] = useState(new Date().toISOString().slice(0, 10));
   const [expiryDate, setExpiryDate] = useState("");
   const [salesperson, setSalesperson] = useState("");
   const [projectName, setProjectName] = useState("");
   const [subject, setSubject] = useState("");
-  const [notes, setNotes] = useState("Looking forward for your business.");
+  const [notes, setNotes] = useState("Looking forward to your business.");
   const [terms, setTerms] = useState("");
 
-  // Items
-  const [items, setItems] = useState<ItemRow[]>([
-    { id: crypto.randomUUID(), name: "", qty: 1, rate: 0 },
+  const [quoteItems, setQuoteItems] = useState<QuoteItemRow[]>([
+    { id: crypto.randomUUID(), itemId: null, name: "", qty: 1, rate: 0 },
   ]);
 
-  // Pricing controls
-  const [discountPct, setDiscountPct] = useState(0); // 0–100
+  const [discountPct, setDiscountPct] = useState(0);
+  const [taxPct, setTaxPct] = useState(0);
   const [taxType, setTaxType] = useState<"TDS" | "TCS">("TDS");
-  const [taxPct, setTaxPct] = useState(0); // 0, 5, 12, 18, 28
   const [adjustment, setAdjustment] = useState(0);
 
-  const subTotal = useMemo(
-    () => items.reduce((s, i) => s + (Number(i.qty) || 0) * (Number(i.rate) || 0), 0),
-    [items]
-  );
-  const discountAmt = useMemo(() => (subTotal * (Number(discountPct) || 0)) / 100, [subTotal, discountPct]);
-  const taxAmt = useMemo(() => {
-    const base = ((subTotal - discountAmt) * (Number(taxPct) || 0)) / 100;
-    return taxType === "TDS" ? -base : base; // TDS deducts, TCS adds
-  }, [subTotal, discountAmt, taxPct, taxType]);
-  const total = useMemo(() => subTotal - discountAmt + taxAmt + (Number(adjustment) || 0), [subTotal, discountAmt, taxAmt, adjustment]);
+  // Load customers
+  useEffect(() => {
+    async function loadCustomers() {
+      try {
+        const res = await fetchWithAuth("https://bpm-production.up.railway.app/api/customers/");
+        if (!res.ok) throw new Error("Failed to fetch customers");
+        const data = await res.json();
+        setCustomers(data.results || []);
+        setCustomerFetchError("");
+      } catch (e) {
+        setCustomerFetchError("Failed to load customers");
+      } finally {
+        setLoadingCustomers(false);
+      }
+    }
+    loadCustomers();
+  }, []);
 
-  const addRow = () =>
-    setItems((rows) => [...rows, { id: crypto.randomUUID(), name: "", qty: 1, rate: 0 }]);
+  // Load items
+  useEffect(() => {
+    async function loadItems() {
+      try {
+        const res = await fetchWithAuth("https://bpm-production.up.railway.app/api/items/");
+        if (!res.ok) throw new Error("Failed to fetch items");
+        const data = await res.json();
+        setItemsList(data.results || []);
+      } catch (e) {
+        console.error("Failed to load items", e);
+      } finally {
+        setLoadingItems(false);
+      }
+    }
+    loadItems();
+  }, []);
 
-  const removeRow = (id: string) =>
-    setItems((rows) => (rows.length === 1 ? rows : rows.filter((r) => r.id !== id)));
+  // Keep customerName synced with selectedCustomerId
+  useEffect(() => {
+    if (!selectedCustomerId) {
+      setCustomerName("");
+    } else {
+      const cust = customers.find(c => c.id === selectedCustomerId);
+      setCustomerName(cust?.display_name ?? "");
+    }
+  }, [selectedCustomerId, customers]);
 
-  const updateRow = (id: string, patch: Partial<ItemRow>) =>
-    setItems((rows) => rows.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+  // Computed totals
+  const subTotal = useMemo(() => {
+    return quoteItems.reduce((sum, item) => sum + (item.qty * item.rate), 0);
+  }, [quoteItems]);
 
-  function save(status: "Draft" | "Sent") {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    const list = saved ? JSON.parse(saved) : [];
+  const discountAmount = useMemo(() => (subTotal * discountPct) / 100, [subTotal, discountPct]);
 
-    list.push({
-      id: crypto.randomUUID(),
-      date: quoteDate,
-      quoteNumber,
-      customerName,
+  const taxAmount = useMemo(() => {
+    const base = (subTotal - discountAmount) * (taxPct / 100);
+    return taxType === "TDS" ? -base : base;
+  }, [subTotal, discountAmount, taxPct, taxType]);
+
+  const total = useMemo(() => subTotal - discountAmount + taxAmount + adjustment, [subTotal, discountAmount, taxAmount, adjustment]);
+
+  // Handlers
+  const addRow = () => {
+    setQuoteItems(curr => [...curr, { id: crypto.randomUUID(), itemId: null, name: "", qty: 1, rate: 0 }]);
+  };
+
+  const removeRow = (id: string) => {
+    setQuoteItems(curr => (curr.length > 1 ? curr.filter(row => row.id !== id) : curr));
+  };
+
+  const updateRow = (id: string, patch: Partial<QuoteItemRow>) => {
+    setQuoteItems(curr => curr.map(row => row.id === id ? { ...row, ...patch } : row));
+  };
+
+  // Save quote handler
+  const saveQuote = async (status: "draft" | "sent") => {
+    if (!selectedCustomerId) {
+      alert("Please select a customer");
+      return;
+    }
+
+    // Prepare payload matching Django model expectations
+    const payload = {
+      customer_id: selectedCustomerId,
+      quote_number: quoteNumber,
+      reference_number: reference,
+      quote_date: quoteDate,
+      expiry_date: expiryDate,
+      salesperson,
+      project_name: projectName,
+      subject,
+      customer_notes: notes,
+      terms_and_conditions: terms,
+      subtotal: subTotal.toFixed(2),
+      discount: discountPct.toFixed(2),
+      tax_type: taxType,
+      tax_percentage: taxPct.toString(),
+      adjustment: adjustment.toFixed(2),
+      total_amount: total.toFixed(2),
       status,
-      amount: total,
-      // keep rest of fields in case you want to use later
-      meta: {
-        reference,
-        expiryDate,
-        salesperson,
-        projectName,
-        subject,
-        notes,
-        terms,
-        items,
-        discountPct,
-        taxPct,
-        taxType,
-        adjustment,
-      },
-    });
+      item_details: quoteItems
+        .filter(item => item.itemId !== null)
+        .map(item => ({
+          item_id: item.itemId,
+          quantity: item.qty,
+          rate: item.rate,
+          amount: (item.qty * item.rate).toFixed(2),
+        }))
+    };
 
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-    router.push("/quotes");
-  }
+    try {
+      const res = await fetchWithAuth("https://bpm-production.up.railway.app/api/quotes/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        alert(`Failed to save quote: ${JSON.stringify(err)}`);
+        return;
+      }
+      router.push("/books/sales/quotes");
+    } catch (err) {
+      alert("Error saving quote.");
+      console.error(err);
+    }
+  };
+
 
   return (
-    <div className="min-h-screen p-6 bg-green-50">
-      <h1 className="mb-6 text-2xl font-bold text-green-800">New Quote</h1>
-
-      <div className="p-6 space-y-8 bg-white shadow-md rounded-2xl">
-        {/* Top grid */}
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+    <div className="min-h-screen bg-green-50 p-6">
+      <h1 className="text-3xl mb-6 text-green-800 font-semibold">New Quote</h1>
+      <div className="bg-white p-6 rounded-xl shadow max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-medium text-green-800">Customer Name*</label>
-            <input
-              value={customerName}
-              onChange={(e) => setCustomerName(e.target.value)}
-              placeholder="Select or add a customer"
-              className="w-full px-3 py-2 mt-1 border rounded-lg focus:ring-2 focus:ring-green-400"
-            />
+            <label className="block font-medium text-green-700 mb-1">Customer</label>
+            {loadingCustomers ? (
+              <p>Loading customers...</p>
+            ) : customerFetchError ? (
+              <p className="text-red-600">{customerFetchError}</p>
+            ) : (
+              <select
+                value={selectedCustomerId}
+                onChange={e => setSelectedCustomerId(e.target.value === "" ? "" : Number(e.target.value))}
+                className="w-full border border-green-300 rounded px-3 py-2"
+              >
+                <option value="">Select customer</option>
+                {customers.map(c => (
+                  <option key={c.id} value={c.id}>{c.display_name}</option>
+                ))}
+              </select>
+            )}
           </div>
           <div>
-            <label className="block text-sm font-medium text-green-800">Quote #*</label>
+            <label className="block font-medium text-green-700 mb-1">Quote Number</label>
             <input
+              type="text"
               value={quoteNumber}
-              onChange={(e) => setQuoteNumber(e.target.value)}
-              className="w-full px-3 py-2 mt-1 border rounded-lg focus:ring-2 focus:ring-green-400"
+              onChange={e => setQuoteNumber(e.target.value)}
+              className="w-full border border-green-300 rounded px-3 py-2"
             />
           </div>
+        </div>
 
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
           <div>
-            <label className="block text-sm font-medium text-green-800">Reference # (optional)</label>
+            <label className="block font-medium text-green-700 mb-1">Reference Number</label>
             <input
+              type="text"
               value={reference}
-              onChange={(e) => setReference(e.target.value)}
-              className="w-full px-3 py-2 mt-1 border rounded-lg focus:ring-2 focus:ring-green-400"
+              onChange={e => setReference(e.target.value)}
+              className="w-full border border-green-300 rounded px-3 py-2"
             />
           </div>
-
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-green-800">Quote Date*</label>
+              <label className="block font-medium text-green-700 mb-1">Quote Date</label>
               <input
                 type="date"
                 value={quoteDate}
-                onChange={(e) => setQuoteDate(e.target.value)}
-                className="w-full px-3 py-2 mt-1 border rounded-lg focus:ring-2 focus:ring-green-400"
+                onChange={e => setQuoteDate(e.target.value)}
+                className="w-full border border-green-300 rounded px-3 py-2"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-green-800">Expiry Date</label>
+              <label className="block font-medium text-green-700 mb-1">Expiry Date</label>
               <input
                 type="date"
                 value={expiryDate}
-                onChange={(e) => setExpiryDate(e.target.value)}
-                className="w-full px-3 py-2 mt-1 border rounded-lg focus:ring-2 focus:ring-green-400"
+                onChange={e => setExpiryDate(e.target.value)}
+                className="w-full border border-green-300 rounded px-3 py-2"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-green-800">Salesperson</label>
+            <label className="block font-medium text-green-700 mb-1">Salesperson</label>
             <input
+              type="text"
               value={salesperson}
-              onChange={(e) => setSalesperson(e.target.value)}
-              className="w-full px-3 py-2 mt-1 border rounded-lg focus:ring-2 focus:ring-green-400"
+              onChange={e => setSalesperson(e.target.value)}
+              className="w-full border border-green-300 rounded px-3 py-2"
             />
           </div>
+
           <div>
-            <label className="block text-sm font-medium text-green-800">Project Name</label>
+            <label className="block font-medium text-green-700 mb-1">Project Name</label>
             <input
+              type="text"
               value={projectName}
-              onChange={(e) => setProjectName(e.target.value)}
-              className="w-full px-3 py-2 mt-1 border rounded-lg focus:ring-2 focus:ring-green-400"
+              onChange={e => setProjectName(e.target.value)}
+              className="w-full border border-green-300 rounded px-3 py-2"
             />
           </div>
         </div>
 
-        {/* Subject */}
-        <div>
-          <label className="block text-sm font-medium text-green-800">Subject</label>
+        <div className="mt-6">
+          <label className="block font-medium text-green-700 mb-1">Subject</label>
           <textarea
             value={subject}
-            onChange={(e) => setSubject(e.target.value)}
-            placeholder="Let your customer know what this Quote is for"
-            className="w-full px-3 py-2 mt-1 border rounded-lg focus:ring-2 focus:ring-green-400"
+            onChange={e => setSubject(e.target.value)}
+            placeholder="Subject"
+            className="w-full border border-green-300 rounded px-3 py-2"
           />
         </div>
 
-        {/* Items */}
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-lg font-semibold text-green-700">Item Table</h2>
-            <span className="text-sm text-green-700/80">Bulk Actions</span>
-          </div>
-
-          <div className="overflow-hidden border rounded-xl">
-            <table className="w-full">
-              <thead className="text-green-900 bg-green-200">
-                <tr>
-                  <th className="p-2 text-left">Item Details</th>
-                  <th className="p-2 text-left">Quantity</th>
-                  <th className="p-2 text-left">Rate</th>
-                  <th className="p-2 text-left">Amount</th>
-                  <th className="p-2"></th>
+        {/* Items table */}
+        <div className="overflow-hidden border rounded-xl">
+          <table className="w-full">
+            <thead className=" text-green-900 bg-green-100">
+              <tr>
+                <th className="p-2 text-left">Item</th>
+                <th className="p-2 text-left">Quantity</th>
+                <th className="p-2 text-left">Rate</th>
+                <th className="p-2 text-left">Amount</th>
+                <th className="p-2"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {quoteItems.map(item => (
+                <tr key={item.id} className="bg-green-50">
+                  <td className="p-2">
+                    <select
+                      className="w-full border border-green-300 rounded px-2 py-1"
+                      value={item.itemId ?? ""}
+                      onChange={e => {
+                        const id = Number(e.target.value);
+                        const selectedItem = itemsList.find(i => i.id === id);
+                        updateRow(item.id, {
+                          itemId: id,
+                          name: selectedItem?.name ?? "",
+                          rate: selectedItem ? Number(selectedItem.price) : 0,
+                        });
+                      }}
+                    >
+                      <option value="">Select item</option>
+                      {itemsList.map(i => (
+                        <option key={i.id} value={i.id}>{i.name}</option>
+                      ))}
+                    </select>
+                  </td>
+                  <td className="p-2">
+                    <input
+                      type="number"
+                      min={0}
+                      value={item.qty}
+                      onChange={e => updateRow(item.id, { qty: Number(e.target.value) })}
+                      className="w-20 border border-green-300 rounded px-3 py-2"
+                    />
+                  </td>
+                  <td className="p-2">
+                    <input
+                      type="number"
+                      value={item.rate}
+                      readOnly
+                      className="w-24 border border-green-300 rounded px-3 py-2"
+                    />
+                  </td>
+                  <td className="p-2 text-right font-semibold">{(item.qty * item.rate).toFixed(2)}</td>
+                  <td className="p-2 text-center">
+                    <button className="text-red-600 hover:text-red-800" onClick={() => removeRow(item.id)} title="Remove">
+                      ×
+                    </button>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {items.map((row) => (
-                  <tr key={row.id} className="border-b bg-green-50">
-                    <td className="p-2">
-                      <input
-                        value={row.name}
-                        onChange={(e) => updateRow(row.id, { name: e.target.value })}
-                        placeholder="Type or click to select an item"
-                        className="w-full px-2 py-1 border rounded"
-                      />
-                    </td>
-                    <td className="p-2">
-                      <input
-                        type="number"
-                        min={0}
-                        value={row.qty}
-                        onChange={(e) => updateRow(row.id, { qty: Number(e.target.value) })}
-                        className="w-24 px-2 py-1 border rounded"
-                      />
-                    </td>
-                    <td className="p-2">
-                      <input
-                        type="number"
-                        min={0}
-                        value={row.rate}
-                        onChange={(e) => updateRow(row.id, { rate: Number(e.target.value) })}
-                        className="px-2 py-1 border rounded w-28"
-                      />
-                    </td>
-                    <td className="p-2 font-medium">
-                      ₹{(Number(row.qty) * Number(row.rate)).toFixed(2)}
-                    </td>
-                    <td className="p-2">
-                      <button
-                        onClick={() => removeRow(row.id)}
-                        className="text-red-600 hover:text-red-800"
-                        title="Remove row"
-                      >
-                        ✕
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="flex flex-wrap gap-3 mt-3">
-            <button
-              onClick={addRow}
-              className="px-4 py-2 text-white bg-green-600 rounded-lg shadow hover:bg-green-700"
-            >
-              + Add New Row
-            </button>
-            <button className="px-4 py-2 border rounded-lg hover:bg-green-100">
-              + Add Items in Bulk
-            </button>
-          </div>
+              ))}
+            </tbody>
+          </table>
+          <button onClick={addRow} className="mt-3 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+            + Add Item
+          </button>
         </div>
 
-        {/* Totals card */}
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        {/* Totals and footer */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
           <div>
-            <label className="block text-sm font-medium text-green-800">Customer Notes</label>
+            <label className="block font-semibold text-green-700 mb-1">Customer Notes</label>
             <textarea
               value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              className="w-full px-3 py-2 mt-1 border rounded-lg focus:ring-2 focus:ring-green-400"
+              onChange={e => setNotes(e.target.value)}
+              className="w-full border border-green-300 rounded px-3 py-2"
+              placeholder="Notes for customer"
             />
           </div>
-
-          <div className="p-4 space-y-3 border bg-green-50 rounded-2xl">
-            <div className="flex justify-between">
-              <span className="text-green-900">Sub Total</span>
-              <span>₹{subTotal.toFixed(2)}</span>
+          <div className="p-6 bg-green-50 rounded border border-green-200 space-y-3">
+            <div className="flex justify-between">Subtotal <span>₹{subTotal.toFixed(2)}</span></div>
+            <div className="flex justify-between items-center">
+              <span>Discount %</span>
+              <input
+                type="number"
+                min={0}
+                max={100}
+                value={discountPct}
+                onChange={e => setDiscountPct(Number(e.target.value))}
+                className="w-20 border border-green-300 rounded px-3 py-2"
+              />
             </div>
-
-            <div className="flex items-center justify-between gap-4">
-              <label className="text-green-900">Discount</label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  min={0}
-                  max={100}
-                  value={discountPct}
-                  onChange={(e) => setDiscountPct(Number(e.target.value))}
-                  className="w-24 px-2 py-1 border rounded"
-                />
-                <span>%</span>
-                <span className="text-sm text-gray-600">₹{discountAmt.toFixed(2)}</span>
+            <div className="flex justify-between items-center gap-4">
+              <div className="flex gap-4">
+                <label className="inline-flex items-center gap-1"><input type="radio" checked={taxType === "TDS"} onChange={() => setTaxType("TDS")} /> TDS</label>
+                <label className="inline-flex items-center gap-1"><input type="radio" checked={taxType === "TCS"} onChange={() => setTaxType("TCS")} /> TCS</label>
               </div>
-            </div>
-
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <label className="flex items-center gap-1">
-                  <input
-                    type="radio"
-                    checked={taxType === "TDS"}
-                    onChange={() => setTaxType("TDS")}
-                  />
-                  TDS
-                </label>
-                <label className="flex items-center gap-1">
-                  <input
-                    type="radio"
-                    checked={taxType === "TCS"}
-                    onChange={() => setTaxType("TCS")}
-                  />
-                  TCS
-                </label>
-              </div>
-              <select
-                value={taxPct}
-                onChange={(e) => setTaxPct(Number(e.target.value))}
-                className="px-2 py-1 border rounded"
-              >
-                {[0, 5, 12, 18, 28].map((t) => (
-                  <option key={t} value={t}>
-                    {t}% Tax
-                  </option>
-                ))}
+              <select value={taxPct} onChange={e => setTaxPct(Number(e.target.value))} className="border border-green-300 rounded px-3 py-2">
+                {[0,5,12,18,28].map(t => <option key={t} value={t}>{t}%</option>)}
               </select>
-              <span className="text-sm text-gray-600">
-                {taxType === "TDS" ? "-" : "+"}₹{Math.abs(taxAmt).toFixed(2)}
-              </span>
+              <div>{taxType === "TDS" ? "-" : "+"} ₹{Math.abs(taxAmount).toFixed(2)}</div>
             </div>
-
-            <div className="flex items-center justify-between gap-4">
-              <label className="text-green-900">Adjustment</label>
+            <div className="flex justify-between items-center">
+              <span>Adjustment</span>
               <input
                 type="number"
                 value={adjustment}
-                onChange={(e) => setAdjustment(Number(e.target.value))}
-                className="px-2 py-1 border rounded w-28"
+                onChange={e => setAdjustment(Number(e.target.value))}
+                className="w-24 border border-green-300 rounded px-3 py-2"
               />
             </div>
-
-            <div className="flex justify-between pt-2 text-lg font-semibold text-green-800 border-t">
-              <span>Total (₹)</span>
+            <div className="flex justify-between border-t border-green-300 pt-2 font-semibold text-lg">
+              <span>Total</span>
               <span>₹{total.toFixed(2)}</span>
             </div>
           </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-green-800">Terms & Conditions</label>
-          <textarea
-            value={terms}
-            onChange={(e) => setTerms(e.target.value)}
-            className="w-full px-3 py-2 mt-1 border rounded-lg focus:ring-2 focus:ring-green-400"
-          />
-        </div>
-
         {/* Footer buttons */}
-        <div className="flex flex-wrap justify-end gap-3">
-          <button onClick={() => save("Draft")} className="px-4 py-2 border rounded-lg hover:bg-green-100">
+        <div className="flex mt-5 flex-wrap justify-end gap-3">
+          <button onClick={() => saveQuote("draft")} className="px-4 py-2 border rounded-lg hover:bg-green-100">
             Save as Draft
           </button>
           <button
-            onClick={() => save("Sent")}
+            onClick={() => saveQuote("sent")}
             className="px-4 py-2 text-white bg-green-600 rounded-lg shadow hover:bg-green-700"
           >
             Save and Send

@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Quote {{ quote.quote_number }}</title>
+  {% load static %}
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      color: #1a202c;
+      margin: 0;
+      padding: 0 40px;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 20px 0;
+      border-bottom: 2px solid #ccc;
+      gap: 20px;
+    }
+    .logo-container {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      width: 250px;
+      gap: 10px;
+    }
+    .logo-container img {
+      height: 60px;
+      object-fit: contain;
+    }
+    .company-info {
+      font-size: 11px;
+      color: #4a5568;
+      line-height: 1.3;
+      text-align: left;
+    }
+    .quotation {
+      text-align: right;
+      min-width: 180px;
+    }
+    .quotation div {
+      margin-bottom: 5px;
+    }
+    .quotation .title {
+      font-weight: 700;
+      font-size: 24px;
+      color: #2a7a7a;
+    }
+    .quotation .quote-number {
+      font-weight: bold;
+      font-size: 20px;
+      color: #2a7a7a;
+    }
+    .addresses {
+      margin-top: 20px;
+      display: block;
+    }
+    .address-box {
+      width: 100%;
+      margin-bottom: 20px;
+      color: #2d3748;
+      line-height: 1.4;
+    }
+    .section-title {
+      font-weight: 700;
+      color: #2a7a7a;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      font-size: 12px;
+    }
+    table.items {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 30px;
+      font-size: 11px;
+      color: #2d3748;
+      page-break-after: auto;
+      page-break-before: auto;
+      page-break-inside: auto;
+      break-after: auto;
+      break-before: auto;
+      break-inside: auto;
+    }
+    table.items th, table.items td {
+      border: 1px solid #cbd5e0;
+      padding: 8px 6px;
+      vertical-align: top;
+    }
+    table.items th {
+      background-color: #e6f0f0;
+      font-weight: 700;
+      text-align: center;
+    }
+    table.items td {
+      text-align: center;
+    }
+    .totals {
+      margin-top: 20px;
+      width: 40%;
+      float: right;
+      font-size: 12px;
+      border-collapse: collapse;
+    }
+    .totals td {
+      padding: 5px 10px;
+      border: 1px solid #cbd5e0;
+    }
+    .totals tr td:first-child {
+      text-align: left;
+    }
+    .totals tr:last-child td {
+      font-weight: 700;
+      font-size: 16px;
+      background-color: #e6f0f0;
+    }
+    .notes, .terms, .bank-details {
+      clear: both;
+      margin-top: 30px;
+      font-size: 11px;
+      color: #4a5568;
+    }
+    .notes strong, .terms strong, .bank-details strong {
+      font-weight: 700;
+      color: #2a7a7a;
+    }
+    .footer {
+      margin-top: 50px;
+      font-size: 10px;
+      color: #718096;
+      font-style: italic;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 10px;
+    }
+    /* Page break helpers */
+    .page-break-before {
+      page-break-before: always;
+      break-before: page;
+    }
+    .page-end {
+      height: 1px;
+      border: none;
+      border-top: 1.5px solid #888;
+      margin: 35px 0 0 0;
+      padding: 0;
+      page-break-after: always;
+      break-after: page;
+    }
+    tr {
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+    thead {
+      display: table-header-group;
+    }
+    tbody tr:nth-child(15n)::after {
+      content: "";
+      display: block;
+      page-break-after: always;
+      break-after: page;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo-container">
+      <img src="https://www.glonix.in/Final%20Logo%20EC.png" alt="Logo" />
+      <div class="company-info">
+        <b>GLONIX ELECTRONICS PRIVATE LIMITED</b><br/>
+        Plot No.54, 2nd street, Door No.SF1, <br/>
+        Anna nagar 2nd Street, Tansi nagar, Velachery,<br/>
+        Chennai - 600 042,<br/>
+        GSTIN : 33AAHCGO729N2ZG
+      </div>
+    </div>
+    <div class="quotation">
+      <div class="title">Quotation</div>
+      <div class="quote-number">Quote# {{ quote.quote_number }}</div>
+    </div>
+  </div>
+
+  <div class="addresses">
+    <div class="address-box">
+      <div class="section-title">Bill To</div>
+      <div>{{ quote.customer.company_name }}</div>
+      <div>{{ quote.customer.display_name }}</div>
+      <div>{{ quote.customer.billing_street1 }}, {{ quote.customer.billing_street2 }}</div>
+      <div>{{ quote.customer.billing_city }}, {{ quote.customer.billing_state }} {{ quote.customer.billing_pin_code }}</div>
+    </div>
+    <div class="address-box">
+      <div class="section-title">Ship To</div>
+      <div>{{ quote.customer.company_name }}</div>
+      <div>{{ quote.customer.display_name }}</div>
+      <div>{{ quote.customer.shipping_street1 }}, {{ quote.customer.shipping_street2 }}</div>
+      <div>{{ quote.customer.shipping_city }}, {{ quote.customer.shipping_state }} {{ quote.customer.shipping_pin_code }}</div>
+    </div>
+  </div>
+
+  <table class="items">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Item & Description</th>
+        <th>HSN/SAC</th>
+        <th>Qty</th>
+        <th>Rate</th>
+        <th>Unit</th>
+        <th>Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in quote.item_details.all %}
+      <tr>
+        <td>{{ forloop.counter }}</td>
+        <td>{{ item.item.name }}<br/>{{ item.item.description }}</td>
+        <td>{{ item.item.hsn_code|default:"N/A" }}</td>
+        <td>{{ item.quantity }}</td>
+        <td>₹{{ item.rate }}</td>
+        <td>pcs</td>
+        <td>₹{{ item.amount }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <hr class="page-end" />
+
+  <table class="totals">
+    <tr>
+      <td>Sub Total</td>
+      <td>₹{{ quote.subtotal }}</td>
+    </tr>
+    <tr>
+      <td>CGST (9%)</td>
+      <td>₹{{ cgst_amount }}</td>
+    </tr>
+    <tr>
+      <td>SGST (9%)</td>
+      <td>₹{{ sgst_amount }}</td>
+    </tr>
+    <tr>
+      <td>Total</td>
+      <td>₹{{ quote.total_amount }}</td>
+    </tr>
+  </table>
+
+  <div class="notes">
+    <strong>Notes:</strong><br/>
+    {{ quote.notes|linebreaks }}
+  </div>
+  <div class="bank-details">
+    <strong>Bank Details:</strong><br/>
+    NAME: GLONIX ELECTRONICS PRIVATE LIMITED<br/>
+    AC NO: 611905056215<br/>
+    BANK: ICICI BANK<br/>
+    BRANCH: SALEM MAIN BRANCH<br/>
+    IFSC CODE: ICIC0006119<br/>
+    Swift Code: ICICINBBCTS<br/>
+  </div>
+  <div class="terms">
+    <strong>Terms &amp; Conditions:</strong><br/>
+    {{ quote.terms_and_conditions|linebreaks }}
+  </div>
+  <div class="footer">
+    Authorized Signature _________________________
+  </div>
+</body>
+</html>
