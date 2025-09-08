@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { fetchWithAuth } from "@/auth/tokenservice";
+import { generateQuotePDF } from "./pdfGenerator";
+import logo from '../../../../../../public/logo.png';
 
 type Customer = {
   id: number;
@@ -58,6 +60,15 @@ export default function NewQuote() {
   const [taxPct, setTaxPct] = useState(0);
   const [taxType, setTaxType] = useState<"TDS" | "TCS">("TDS");
   const [adjustment, setAdjustment] = useState(0);
+  const [logo, setLogo] = useState<string>("");
+
+  useEffect(() => {
+  (async () => {
+    const base64Logo = await getBase64FromUrl("/logo.png");
+    setLogo(base64Logo); // put this in a useState
+  })();
+}, []);
+
 
   // Load customers
   useEffect(() => {
@@ -178,6 +189,39 @@ export default function NewQuote() {
         alert(`Failed to save quote: ${JSON.stringify(err)}`);
         return;
       }
+if (status === "sent") {
+  generateQuotePDF({
+    title: "QUOTATION",
+    quoteNumber,
+    quoteDate,
+    expiryDate,
+    customerName,
+    billTo: customerName,
+    shipTo: customerName,
+    placeOfSupply: "Tamil Nadu (33)", // if your API has state info, replace this dynamically
+    items: quoteItems.map(i => ({
+      name: i.name,
+      hsn: "853200", // you can fetch this from itemsList if available
+      qty: i.qty,
+      rate: i.rate,
+    })),
+    subTotal,
+    taxBreakup: [
+      {
+        label: taxType,
+        pct: taxPct,
+        amount: taxAmount,
+      },
+    ],
+    total,
+    totalInWords: "Indian Rupee " + total.toFixed(2) + " Only", // use `to-words` lib later for exact wording
+    notes,
+    terms,
+    logo, // base64 logo loaded in useEffect
+  });
+
+
+}
       router.push("/books/sales/quotes");
     } catch (err) {
       alert("Error saving quote.");
@@ -418,4 +462,15 @@ export default function NewQuote() {
       </div>
     </div>
   );
+}
+
+async function getBase64FromUrl(url: string): Promise<string> {
+  const response = await fetch(url);
+  const blob = await response.blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
 }
