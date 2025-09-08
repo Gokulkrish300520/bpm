@@ -1,128 +1,17 @@
-from django.core.cache import cache
-import hashlib
-import json
-from datetime import date, timedelta
-from django.utils.timezone import now
-from rest_framework import viewsets, permissions, status
+from django.shortcuts import render
+from rest_framework import viewsets, permissions , status
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
-from rest_framework.views import APIView
-from rest_framework.permissions import IsAuthenticated
-from django.db.models import Sum, Q
-from rest_framework.decorators import api_view, permission_classes
-from .models import (
-    CustomerDocument, Customer, Invoice, Vendor, Item, Payment, Quote,
-    ProformaInvoice, DeliveryChallan, InventoryAdjustment, Bill,
-)
-from .serializers import (
-    CustomerDocumentSerializer, CustomerSerializer, InvoiceSerializer,
-    VendorSerializer, ItemSerializer, PaymentSerializer, QuoteSerializer,
-    ProformaInvoiceSerializer, DeliveryChallanSerializer,
-    InventoryAdjustmentSerializer, BillSerializer,
-)
+from .models import CustomerDocument,Customer, Invoice, Vendor, Item, Payment, Quote, ProformaInvoice, DeliveryChallan, InventoryAdjustment , Bill
+from .serializers import CustomerDocumentSerializer,CustomerSerializer, InvoiceSerializer, VendorSerializer, ItemSerializer, PaymentSerializer, QuoteSerializer, ProformaInvoiceSerializer, DeliveryChallanSerializer, InventoryAdjustmentSerializer , BillSerializer
 
-class BalanceSheetReportView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request, *args, **kwargs):
-        """
-        Returns a Balance Sheet report for the given time and basis.
-        Query params: time (Today|Yesterday|This Month), basis (Accrual|Cash)
-        """
-        time_param = request.query_params.get("time", "Today")
-        basis = request.query_params.get("basis", "Accrual")
-
-        # Date range logic
-        today = date.today()
-        if time_param == "Today":
-            start_date = end_date = today
-        elif time_param == "Yesterday":
-            start_date = end_date = today - timedelta(days=1)
-        elif time_param == "This Month":
-            start_date = today.replace(day=1)
-            end_date = today
-        else:
-            return Response({"error": "Invalid time parameter."}, status=400)
-
-        # Helper: filter by date field depending on basis
-        def filter_by_basis(qs, date_field):
-            if basis == "Accrual":
-                return qs.filter(**{f"{date_field}__gte": start_date, f"{date_field}__lte": end_date})
-            elif basis == "Cash":
-                # For cash, use payment date for inflows, bill date for outflows
-                return qs.filter(**{f"{date_field}__gte": start_date, f"{date_field}__lte": end_date})
-            else:
-                return qs.none()
-
-        # Current Assets
-        # Cash/Bank: Payments received (inflows)
-        cash_inflows = filter_by_basis(Payment.objects.all(), "date").aggregate(total=Sum("amount"))['total'] or 0
-        # Accounts Receivable: Unpaid invoice amounts
-        invoices = filter_by_basis(Invoice.objects.all(), "invoice_date")
-        total_invoiced = invoices.aggregate(total=Sum("total_amount"))['total'] or 0
-        payments = filter_by_basis(Payment.objects.all(), "date")
-        total_paid = payments.aggregate(total=Sum("amount"))['total'] or 0
-        accounts_receivable = max(total_invoiced - total_paid, 0)
-        # Other current assets: Not tracked, set to 0
-        other_current_assets = 0
-        total_current_assets = cash_inflows + accounts_receivable + other_current_assets
-
-        # Other Assets, Fixed Assets: Not tracked, set to 0
-        other_assets = 0
-        fixed_assets = 0
-        total_assets = total_current_assets + other_assets + fixed_assets
-
-        # Liabilities
-        # Accounts Payable: Unpaid bills
-        bills = filter_by_basis(Bill.objects.all(), "bill_date")
-        total_billed = bills.aggregate(total=Sum("total_amount"))['total'] or 0
-        # No bill payments tracked, so all bills are payable
-        accounts_payable = total_billed
-        # Current Liabilities, Long term liabilities, Other liabilities: Not tracked, set to 0
-        current_liabilities = accounts_payable
-        long_term_liabilities = 0
-        other_liabilities = 0
-        total_liabilities = current_liabilities + long_term_liabilities + other_liabilities
-
-        # Equities: Not tracked, set to 0
-        equities = 0
-        total_liabilities_and_equities = total_liabilities + equities
-
-        return Response({
-            "assets": {
-                "current_assets": {
-                    "cash": float(cash_inflows),
-                    "bank": float(cash_inflows),  # No split, treat as same
-                    "accounts_receivable": float(accounts_receivable),
-                    "other_current_assets": float(other_current_assets),
-                    "total_current_assets": float(total_current_assets),
-                },
-                "other_assets": float(other_assets),
-                "fixed_assets": float(fixed_assets),
-                "total_assets": float(total_assets),
-            },
-            "liabilities_and_equities": {
-                "liabilities": {
-                    "current_liabilities": float(current_liabilities),
-                    "long_term_liabilities": float(long_term_liabilities),
-                    "other_liabilities": float(other_liabilities),
-                    "total_liabilities": float(total_liabilities),
-                },
-                "equities": float(equities),
-                "total_liabilities_and_equities": float(total_liabilities_and_equities),
-            },
-            "time": time_param,
-            "basis": basis,
-            "start_date": str(start_date),
-            "end_date": str(end_date),
-        })
-
+# Create your views here.
 class CustomerDocumentViewSet(viewsets.ModelViewSet):
     """ViewSet for uploading, retrieving,
     and updating customer documents (files)."""
     queryset = CustomerDocument.objects.all().order_by(
         "-uploaded_at"
-    )  # No related fields to optimize
+    )
     serializer_class = CustomerDocumentSerializer
     permission_classes = [permissions.IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser]
@@ -165,14 +54,12 @@ class CustomerDocumentViewSet(viewsets.ModelViewSet):
         self.perform_update(serializer)
         return Response(serializer.data)
 
-
 class BillViewSet(viewsets.ModelViewSet):
     """ViewSet for managing Bills."""
-    queryset = Bill.objects.select_related("vendor").prefetch_related("billitem_set").order_by("-created_at")
+    queryset = Bill.objects.all().order_by("-created_at")
     serializer_class = BillSerializer
     permission_classes = [permissions.IsAuthenticated]
-
-
+    
 class CustomerViewSet(viewsets.ModelViewSet):
     """ViewSet for managing Customers."""
 

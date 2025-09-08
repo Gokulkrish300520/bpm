@@ -2,24 +2,6 @@ from django.db import models
 from django.core.exceptions import ValidationError
 from django.core.validators import FileExtensionValidator
 
-# ...existing code...
-
-# DailySummary model for pre-aggregated daily totals
-class DailySummary(models.Model):
-    date = models.DateField(db_index=True, unique=True)
-    invoices_total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
-    bills_total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
-    payments_total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return f"Summary for {self.date}"
-from django.db import models
-from django.core.exceptions import ValidationError
-from django.core.validators import FileExtensionValidator
-
-
 class BillItem(models.Model):
     """
     Represents an item entry in a Bill, including quantity, rate, and tax.
@@ -84,7 +66,7 @@ class Bill(models.Model):
         choices=STATUS_CHOICES,
         default="DRAFT",
     )
-    bill_date = models.DateField(db_index=True)
+    bill_date = models.DateField()
     due_date = models.DateField()
     notes = models.TextField(
         blank=True,
@@ -115,8 +97,7 @@ class Bill(models.Model):
     def __str__(self) -> str:
         """String representation of Bill."""
         return f"Bill {self.bill_number} - {self.vendor.name}"
-
-
+    
 class Customer(models.Model):
     """Represents a customer, including contact and billing information."""
 
@@ -131,18 +112,9 @@ class Customer(models.Model):
         ("mrs", "Mrs"),
     ]
     CURRENCY_CHOICES = [
-        ("AED", "AED"),
-        ("AUD", "AUD"),
-        ("BND", "BND"),
-        ("CAD", "CAD"),
-        ("CNY", "CNY"),
-        ("EUR", "EUR"),
-        ("GBP", "GBP"),
-        ("INR", "INR"),
-        ("JPY", "JPY"),
-        ("SAR", "SAR"),
-        ("USD", "USD"),
-        ("ZAR", "ZAR"),
+        ("AED", "AED"),("AUD", "AUD"),("BND", "BND"),("CAD", "CAD"),
+        ("CNY", "CNY"),("EUR", "EUR"),("GBP", "GBP"),("INR", "INR"),
+        ("JPY", "JPY"),("SAR", "SAR"),("USD", "USD"),("ZAR", "ZAR"),
     ]
     PAYMENT_TERMS_CHOICES = [
         ("due_on_receipt", "Due on Receipt"),
@@ -286,13 +258,11 @@ class Customer(models.Model):
     )
 
     def __str__(self) -> str:
-        """String representation of Customer."""
         return self.display_name
 
 
 class CustomerDocument(models.Model):
     """Stores uploaded files associated with customers or bills."""
-
     file = models.FileField(
         upload_to="customer_documents/",
         validators=[
@@ -313,26 +283,20 @@ class CustomerDocument(models.Model):
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
     def clean(self) -> None:
-        """Validates file size for CustomerDocument."""
         if self.file.size > 10 * 1024 * 1024:
             raise ValidationError("File size must be under 10MB.")
 
 
 class ContactPerson(models.Model):
-    """Represents a contact person for a customer."""
-
+    
     SALUTATION_CHOICES = [
         ("dr", "Dr"),
         ("mr", "Mr"),
         ("ms", "Ms"),
         ("mrs", "Mrs"),
     ]
-    customer = models.ForeignKey(
-        Customer, related_name="contact_persons", on_delete=models.CASCADE
-    )
-    salutation = models.CharField(
-        max_length=5, choices=SALUTATION_CHOICES, blank=True, null=True
-    )
+    customer = models.ForeignKey(Customer, related_name="contact_persons", on_delete=models.CASCADE)
+    salutation = models.CharField(max_length=5, choices=SALUTATION_CHOICES, blank=True, null=True)
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
     email = models.EmailField()
@@ -340,7 +304,6 @@ class ContactPerson(models.Model):
     mobile = models.CharField(max_length=50, blank=True)
 
     def __str__(self) -> str:
-        """String representation of ContactPerson."""
         return f"{self.first_name} {self.last_name} ({self.email})"
 
 
@@ -355,7 +318,6 @@ class Vendor(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self) -> str:
-        """String representation of Vendor."""
         return self.name
 
 
@@ -369,16 +331,11 @@ class Item(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self) -> str:
-        """String representation of Item."""
         return self.name
 
 
 class Payment(models.Model):
-    """Represents a payment made against an invoice."""
-
-    invoice = models.ForeignKey(
-        "Invoice", related_name="payments", on_delete=models.CASCADE
-    )
+    invoice = models.ForeignKey("Invoice", related_name="payments", on_delete=models.CASCADE)
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     date = models.DateField(db_index=True)
     method = models.CharField(max_length=50, blank=True)
@@ -386,17 +343,15 @@ class Payment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self) -> str:
-        """String representation of Payment."""
-        return (
-            f"Payment {self.amount} for Invoice "
-            f"{self.invoice.invoice_number}"
-        )
+        return f"Payment {self.amount} for Invoice {self.invoice.invoice_number}"
 
 
 class Quote(models.Model):
     """Represents a sales quote sent to a customer."""
 
     TAX_TYPE_CHOICES = [
+        ('TDS', 'TDS'),
+        ('TCS', 'TCS'),
         ("TDS", "TDS"),
         ("TCS", "TCS"),
     ]
@@ -407,9 +362,7 @@ class Quote(models.Model):
         ("18", "18%"),
         ("28", "28%"),
     ]
-    customer = models.ForeignKey(
-        Customer, related_name="quotes", on_delete=models.CASCADE
-    )
+    customer = models.ForeignKey(Customer, related_name="quotes", on_delete=models.CASCADE)
     quote_number = models.CharField(max_length=50, unique=True)
     reference_number = models.CharField(max_length=50, blank=True)
     quote_date = models.DateField()
@@ -454,8 +407,7 @@ class Quote(models.Model):
 
     def __str__(self):
         return f"Quote {self.quote_number} - {self.customer.display_name}"
-
-
+    
 class DocumentItemBase(models.Model):
     item = models.ForeignKey(Item, on_delete=models.CASCADE)
     quantity = models.PositiveIntegerField()
@@ -466,18 +418,12 @@ class DocumentItemBase(models.Model):
         abstract = True
 
 
+# QuoteItem model
 class QuoteItem(DocumentItemBase):
-    quote = models.ForeignKey(
-        Quote,
-        related_name="item_details",
-        on_delete=models.CASCADE,
-    )
+    quote = models.ForeignKey(Quote, related_name='item_details', on_delete=models.CASCADE)
 
     def __str__(self):
-        return (
-            f"{self.item.name} x {self.quantity} for Quote "
-            f"{self.quote.quote_number}"
-        )
+        return f"{self.item.name} x {self.quantity} for Quote" f"{self.quote.quote_number}"
 
 
 class ProformaInvoice(models.Model):
@@ -485,13 +431,7 @@ class ProformaInvoice(models.Model):
         ("TDS", "TDS"),
         ("TCS", "TCS"),
     ]
-    TAX_PERCENTAGE_CHOICES = [
-        ("0", "0%"),
-        ("5", "5%"),
-        ("12", "12%"),
-        ("18", "18%"),
-        ("28", "28%"),
-    ]
+    TAX_PERCENTAGE_CHOICES = [ ("0", "0%"),("5", "5%"),("12", "12%"),("18", "18%"),("28", "28%"),]
     customer = models.ForeignKey(
         Customer, related_name="proforma_invoices", on_delete=models.CASCADE
     )
@@ -508,7 +448,7 @@ class ProformaInvoice(models.Model):
     discount = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     tax_type = models.CharField(
         max_length=3,
-        choices=TAX_TYPE_CHOICES,
+        choices= TAX_TYPE_CHOICES,
         default="TDS",
     )
     tax_percentage = models.CharField(
@@ -567,7 +507,20 @@ class DeliveryChallanItem(DocumentItemBase):
             f"{self.delivery_challan.challan_number}"
         )
 
+class ProformaInvoiceItem(DocumentItemBase):
+    proforma_invoice = models.ForeignKey(
+        ProformaInvoice,
+        related_name="item_details",
+        on_delete=models.CASCADE,
+    )
 
+    def __str__(self):
+        return (
+            f"{self.item.name} x {self.quantity} for Proforma "
+            f"{self.proforma_invoice.invoice_number}"
+        )
+
+        
 class DeliveryChallan(models.Model):
     CHALLAN_TYPE_CHOICES = [
         ("liquid_gas", "Supply of Liquid Gas"),
@@ -586,8 +539,17 @@ class DeliveryChallan(models.Model):
         choices=CHALLAN_TYPE_CHOICES,
         default="others",
     )
-    total_amount = models.DecimalField(max_digits=12, decimal_places=2,
-                                       default=0)
+    status = models.CharField(
+        max_length=20,
+        choices=[
+            ("draft", "Draft"),
+            ("sent", "Sent"),
+            ("accepted", "Accepted"),
+            ("cancelled", "Cancelled"),
+        ],
+        default="draft",
+    )
+    total_amount = models.DecimalField(max_digits=12, decimal_places=2,default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -596,7 +558,20 @@ class DeliveryChallan(models.Model):
             f"{self.customer.display_name}"
         )
 
+class DeliveryChallanItem(DocumentItemBase):
+    delivery_challan = models.ForeignKey(
+        DeliveryChallan,
+        related_name="item_details",
+        on_delete=models.CASCADE,
+    )
 
+    def __str__(self):
+        return (
+            f"{self.item.name} x {self.quantity} for Challan "
+            f"{self.delivery_challan.challan_number}"
+        )
+        
+# Inventory Adjustment model
 class InventoryAdjustment(models.Model):
     item = models.ForeignKey(
         Item, related_name="inventory_adjustments", on_delete=models.CASCADE
@@ -609,25 +584,8 @@ class InventoryAdjustment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return (
-            f"Adjustment {self.adjustment_number} - "
-            f"{self.item.name}"
-        )
-
-
-class InvoiceItem(DocumentItemBase):
-    invoice = models.ForeignKey(
-        "Invoice",
-        related_name="item_details",
-        on_delete=models.CASCADE,
-    )
-
-    def __str__(self):
-        return (
-            f"{self.item.name} x {self.quantity} for Invoice "
-            f"{self.invoice.invoice_number}"
-        )
-
+        return f"Adjustment {self.adjustment_number} - {self.item.name}"
+    
 
 class Invoice(models.Model):
     customer = models.ForeignKey(
@@ -637,11 +595,16 @@ class Invoice(models.Model):
     )
     invoice_number = models.CharField(max_length=50, unique=True)
     order_number = models.CharField(max_length=50, blank=True)
-    invoice_date = models.DateField(db_index=True)
+    invoice_date = models.DateField()
+    status = models.CharField(max_length=20, choices=[
+        ('draft', 'Draft'),
+        ('sent', 'Sent'),
+        ('paid', 'Paid'),
+        ('cancelled', 'Cancelled'),
+    ], default='draft')
     customer_notes = models.TextField(blank=True)
     terms_and_conditions = models.TextField(blank=True)
-    total_amount = models.DecimalField(max_digits=12, decimal_places=2,
-                                       default=0)
+    total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     files = models.ManyToManyField(
         "CustomerDocument",
         blank=True,
@@ -649,7 +612,17 @@ class Invoice(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
+        return f"Invoice {self.invoice_number} - {self.customer.name}"
+
+class InvoiceItem(DocumentItemBase):
+    invoice = models.ForeignKey(
+        Invoice,
+        related_name="item_details",
+        on_delete=models.CASCADE,
+    )
+
+    def __str__(self):
         return (
-            f"Invoice {self.invoice_number} - "
-            f"{self.customer.display_name}"
+            f"{self.item.name} x {self.quantity} for Invoice "
+            f"{self.invoice.invoice_number}"
         )

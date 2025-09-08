@@ -1,23 +1,7 @@
 from django.urls import path, include
 
 from rest_framework.routers import DefaultRouter
-from .views import (
-    CustomerViewSet,
-    InvoiceViewSet,
-    VendorViewSet,
-    ItemViewSet,
-    PaymentViewSet,
-    QuoteViewSet,
-    ProformaInvoiceViewSet,
-    DeliveryChallanViewSet,
-    InventoryAdjustmentViewSet,
-    BillViewSet,
-    CustomerDocumentViewSet,
-    ProfitAndLossReportView,
-    BalanceSheetReportView,
-    # quote_pdf_view
-)
-
+from .views import CustomerViewSet, InvoiceViewSet, VendorViewSet, ItemViewSet, PaymentViewSet, QuoteViewSet, ProformaInvoiceViewSet, DeliveryChallanViewSet, InventoryAdjustmentViewSet, BillViewSet, CustomerDocumentViewSet
 
 router = DefaultRouter()
 router.register(r"customers", CustomerViewSet, basename="customer")

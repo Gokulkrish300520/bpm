@@ -1,22 +1,5 @@
 from rest_framework import serializers
-from .models import (
-    Customer,
-    Invoice,
-    Vendor,
-    Item,
-    Payment,
-    Quote,
-    ProformaInvoice,
-    DeliveryChallan,
-    CustomerDocument,
-    ContactPerson,
-    QuoteItem,
-    ProformaInvoiceItem,
-    InvoiceItem,
-    DeliveryChallanItem,
-    Bill,
-    BillItem,
-)
+from .models import (Customer, Invoice, Vendor, Item, Payment, Quote, ProformaInvoice, DeliveryChallan, InventoryAdjustment, CustomerDocument, ContactPerson, QuoteItem ,ProformaInvoiceItem, InvoiceItem, DeliveryChallanItem,Bill,BillItem)
 
 
 class CustomerDocumentSerializer(serializers.ModelSerializer):
@@ -221,6 +204,122 @@ class CustomerSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id", "created_at", "documents", "contact_persons"]
 
+class ItemSerializer(serializers.ModelSerializer):
+    """Serializer for Item model."""
+
+    class Meta:
+        model = Item
+        fields = ["id", "name", "description", "price", "sku", "created_at"]
+        read_only_fields = ["id", "created_at"]
+        
+# Vendor serializer
+class VendorSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Invoice
+        fields = [
+            "id",
+            "customer",
+            "customer_id",
+            "invoice_number",
+            "order_number",
+            "invoice_date",
+            "item_details",
+            "customer_notes",
+            "terms_and_conditions",
+            "total_amount",
+            "files",
+            "file_ids",
+            "created_at",
+        ]
+        read_only_fields = ['id', 'created_at']
+
+class BillItemSerializer(serializers.ModelSerializer):
+    """Serializer for BillItem model, includes item details."""
+
+    item = ItemSerializer(read_only=True)
+    item_id = serializers.PrimaryKeyRelatedField(
+        queryset=Item.objects.all(),
+        source="item",
+        write_only=True,
+    )
+
+    class Meta:
+        model = BillItem
+        fields = [
+            "id",
+            "bill",
+            "item",
+            "item_id",
+            "description",
+            "quantity",
+            "rate",
+            "amount",
+        ]
+        read_only_fields = ["id", "bill", "item", "amount"]
+
+
+class BillSerializer(serializers.ModelSerializer):
+    """Serializer for Bill model, includes vendor and item details."""
+
+    vendor = VendorSerializer(read_only=True)
+    vendor_id = serializers.PrimaryKeyRelatedField(
+        queryset=Vendor.objects.all(),
+        source="vendor",
+        write_only=True,
+    )
+    item_details = BillItemSerializer(
+        many=True,
+        read_only=True,
+        source="billitem_set",
+    )
+
+    class Meta:
+        model = Bill
+        fields = [
+            "id",
+            "vendor",
+            "vendor_id",
+            "bill_number",
+            "bill_date",
+            "due_date",
+            "item_details",
+            "total_amount",
+            "status",
+            "notes",
+            "created_at",
+        ]
+        read_only_fields = ["id", "created_at", "vendor", "item_details"]
+        
+class DeliveryChallanItemSerializer(serializers.ModelSerializer):
+    """Serializer for DeliveryChallanItem model."""
+
+    item = ItemSerializer(read_only=True)
+    item_id = serializers.PrimaryKeyRelatedField(
+        queryset=Item.objects.all(),
+        source="item",
+        write_only=True,
+    )
+
+    class Meta:
+        model = DeliveryChallanItem
+        fields = ["id", "item", "item_id", "quantity", "rate", "amount"]
+        read_only_fields = ["id", "item", "amount"]
+
+
+class InvoiceItemSerializer(serializers.ModelSerializer):
+    """Serializer for InvoiceItem model."""
+
+    item = ItemSerializer(read_only=True)
+    item_id = serializers.PrimaryKeyRelatedField(
+        queryset=Item.objects.all(),
+        source="item",
+        write_only=True,
+    )
+
+    class Meta:
+        model = InvoiceItem
+        fields = ["id", "item", "item_id", "quantity", "rate", "amount"]
+        read_only_fields = ["id", "item", "amount"]
 
 class InvoiceSerializer(serializers.ModelSerializer):
     """Serializer for Invoice model, includes customer, items, and files."""
@@ -250,6 +349,7 @@ class InvoiceSerializer(serializers.ModelSerializer):
             "invoice_number",
             "order_number",
             "invoice_date",
+            "status",
             "item_details",
             "customer_notes",
             "terms_and_conditions",
@@ -262,7 +362,7 @@ class InvoiceSerializer(serializers.ModelSerializer):
             "id", "created_at", "customer", "item_details", "files"
         ]
 
-
+# Payment serializer
 class PaymentSerializer(serializers.ModelSerializer):
     """Serializer for Payment model, includes invoice details."""
 
@@ -364,7 +464,22 @@ class ProformaInvoiceItemSerializer(serializers.ModelSerializer):
         fields = ["id", "item", "item_id", "quantity", "rate", "amount"]
         read_only_fields = ["id", "item", "amount"]
 
+class ProformaInvoiceItemSerializer(serializers.ModelSerializer):
+    """Serializer for ProformaInvoiceItem model."""
 
+    item = ItemSerializer(read_only=True)
+    item_id = serializers.PrimaryKeyRelatedField(
+        queryset=Item.objects.all(),
+        source="item",
+        write_only=True,
+    )
+
+    class Meta:
+        model = ProformaInvoiceItem
+        fields = ["id", "item", "item_id", "quantity", "rate", "amount"]
+        read_only_fields = ["id", "item", "amount"]
+        
+# ProformaInvoice serializer
 class ProformaInvoiceSerializer(serializers.ModelSerializer):
     """
     Serializer for ProformaInvoice model, includes customer and item details.
@@ -403,7 +518,7 @@ class ProformaInvoiceSerializer(serializers.ModelSerializer):
             "status",
             "created_at",
         ]
-        read_only_fields = ["id", "created_at", "customer", "item_details"]
+        read_only_fields = ['id', 'created_at', 'customer', "item_details"]
 
 
 class DeliveryChallanSerializer(serializers.ModelSerializer):
@@ -415,6 +530,7 @@ class DeliveryChallanSerializer(serializers.ModelSerializer):
     )
     item_details = DeliveryChallanItemSerializer(many=True, read_only=True)
 
+    item_details = DeliveryChallanItemSerializer(many=True, read_only=True)
     class Meta:
         model = DeliveryChallan
         fields = [
@@ -427,11 +543,22 @@ class DeliveryChallanSerializer(serializers.ModelSerializer):
             "challan_type",
             "item_details",
             "total_amount",
+            "status",
             "created_at",
         ]
-        read_only_fields = ["id", "created_at", "customer", "item_details"]
+        read_only_fields = ['id', 'created_at', 'customer',"item_details"]
 
 
 class InventoryAdjustmentSerializer(serializers.ModelSerializer):
+    # #item = ItemSerializer(read_only=True)
+    # item_id = serializers.PrimaryKeyRelatedField(
+    #     queryset=Item.objects.all(), source='item', write_only=True
+    # )
 
+    # class Meta:
+    #     model = InventoryAdjustment
+    #     fields = [
+    #         'id', 'item', 'item_id', 'adjustment_number', 'date', 'quantity', 'reason', 'notes', 'created_at'
+    #     ]
+    #     read_only_fields = ['id', 'created_at', 'item']
     pass
