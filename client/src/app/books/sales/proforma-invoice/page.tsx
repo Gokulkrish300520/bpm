@@ -33,7 +33,7 @@ export default function ProformaInvoicesPage() {
     async function loadProformaInvoices() {
       try {
         const res = await fetchWithAuth(
-          "https://bpm-production.up.railway.app/api/proformainvoices/"
+          "https://bom-front-production.up.railway.app/api/proformainvoices/"
         );
         if (!res.ok) throw new Error("Failed to fetch proforma invoices");
         const data = await res.json();

@@ -49,7 +49,7 @@ export default function NewProformaInvoicePage() {
   useEffect(() => {
     async function loadCustomers() {
       try {
-        const res = await fetchWithAuth("https://bpm-production.up.railway.app/api/customers/");
+  const res = await fetchWithAuth("https://bom-front-production.up.railway.app/api/customers/");
         const data = await res.json();
         setCustomers(data.results || []);
       } catch (err) {
@@ -62,7 +62,7 @@ export default function NewProformaInvoicePage() {
   useEffect(() => {
     async function loadItems() {
       try {
-        const res = await fetchWithAuth("https://bpm-production.up.railway.app/api/items/");
+  const res = await fetchWithAuth("https://bom-front-production.up.railway.app/api/items/");
         const data = await res.json();
         setItemsList(data.results || []);
       } catch (err) {
@@ -81,7 +81,7 @@ export default function NewProformaInvoicePage() {
     async function loadCustomer() {
       try {
         const res = await fetchWithAuth(
-          `https://bpm-production.up.railway.app/api/customers/${selectedCustomerId}/`
+          `https://bom-front-production.up.railway.app/api/customers/${selectedCustomerId}/`
         );
         const data = await res.json();
         setCustomer(data);
@@ -200,7 +200,7 @@ export default function NewProformaInvoicePage() {
     };
 
     try {
-      const res = await fetchWithAuth("https://bpm-production.up.railway.app/api/proformainvoices/", {
+  const res = await fetchWithAuth("https://bom-front-production.up.railway.app/api/proformainvoices/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

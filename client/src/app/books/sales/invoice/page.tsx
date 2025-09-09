@@ -88,7 +88,7 @@ export default function InvoiceListPage() {
     }
   };
 
-  const baseApiUrl = "https://bpm-production.up.railway.app/api/invoices/";
+  const baseApiUrl = "https://bom-front-production.up.railway.app/api/invoices/";
 
   async function loadInvoices(url?: string, pageNumber = 1) {
     setLoading(true);
