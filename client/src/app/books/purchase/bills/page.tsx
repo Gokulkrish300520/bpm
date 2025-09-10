@@ -1,16 +1,27 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { SetStateAction, useEffect, useState } from "react";
 import { Bill } from "./component/types";
 import BillTable from "./component/BillTable";
 import NewBillDrawer from "./component/NewBillDrawer";
 import { fetchWithAuth } from "@/auth/tokenservice";
+import ViewBillDrawer from "./component/ViewBillDrawer";
+import EditBillDrawer from "./component/EditBillDrawer";
 
 export default function BillsPage() {
   const [bills, setBills] = useState<Bill[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  const [selectedBillId, setSelectedBillId] = useState<string | null>(null);
+  const [viewOpen, setViewOpen] = useState(false);
+  const [editBill, setEditBill] = useState<Bill | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+
+  function openEditDrawer(bill: Bill) {
+  setEditBill(bill);
+  setEditOpen(true);
+}
 
   // Fetch bills from backend API when component mounts
   useEffect(() => {
@@ -64,10 +75,37 @@ export default function BillsPage() {
       </div>
 
       {/* Bills Table */}
-      <BillTable bills={bills} />
+      <BillTable bills={bills} onRowClick={(bill: { id: SetStateAction<string | null>; }) => {
+          setSelectedBillId(bill.id);
+          setViewOpen(true);
+        }}
+        onEditClick={(bill) => {
+          openEditDrawer(bill);
+        }}
+      />
 
       {/* New Bill Drawer */}
       <NewBillDrawer open={open} onClose={() => setOpen(false)} onSaved={handleNewBillSaved} />
+      <ViewBillDrawer
+        open={viewOpen}
+        billId={selectedBillId}
+        onClose={() => setViewOpen(false)}
+      />
+      {editOpen && editBill && (
+        <EditBillDrawer
+          open={editOpen}
+          billId={editBill.id}
+          bill={editBill}
+          onClose={() => setEditOpen(false)}
+          onUpdated={(updatedBill) => {
+            setBills(prev =>
+              prev.map(b => (b.id === updatedBill.id ? updatedBill : b))
+            );
+            setEditOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }
+

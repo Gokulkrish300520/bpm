@@ -3,7 +3,11 @@
 import { useRouter } from "next/navigation";
 import { Bill } from "./types";
 
-type Props = { bills: Bill[] };
+type BillTableProps = {
+  bills: Bill[];
+  onRowClick?: (bill: Bill) => void;
+  onEditClick?: (bill: Bill) => void; 
+};
 
 const statusColor: Record<Bill["status"], string> = {
   PAID: "text-emerald-600",
@@ -12,7 +16,7 @@ const statusColor: Record<Bill["status"], string> = {
   DRAFT: "text-gray-500",
 };
 
-export default function BillTable({ bills }: Props) {
+export default function BillTable({ bills, onRowClick, onEditClick  }: BillTableProps) {
   const router = useRouter();
 
   const hasAttachments = (bill: Bill & { meta?: { files?: string[] } }) =>
@@ -37,18 +41,25 @@ export default function BillTable({ bills }: Props) {
         </thead>
         <tbody>
           {bills.map((b) => (
-            <tr key={b.id}
-                className="border-t hover:bg-emerald-50/40 cursor-pointer"
-                onClick={() => router.push(`/purchase/bills/${b.id}`)}>
-              <td className="p-3">{b.date}</td>
-              <td className="p-3 text-emerald-700 font-medium">{b.billNo}</td>
+            <tr key={b.id} >
+              <td 
+                className="p-3 cursor-pointer"
+                onClick={() => onRowClick?.(b)} >{b.bill_date}</td>
+              <td onClick={() => onRowClick?.(b)} className="p-3 text-emerald-700 font-medium">{b.bill_number}</td>
               <td className="p-3">{b.referenceNumber || "-"}</td>
-              <td className="p-3">{b.vendorSnapshot?.name}</td>
+              <td className="p-3">{b.vendor.first_name}</td>
               <td className={`p-3 font-medium ${statusColor[b.status]}`}>{b.status}</td>
-              <td className="p-3">{b.dueDate || "-"}</td>
-              <td className="p-3">₹ {b.amount.toFixed(2)}</td>
-              <td className="p-3">₹ {b.balanceDue.toFixed(2)}</td>
+              <td className="p-3">{b.due_date || "-"}</td>
+              <td className="p-3">₹ {b.total_amount}</td>
+              <td className="p-3">₹ {b.balanceDue}</td>
               <td className="p-3">{hasAttachments(b) ? "📎" : "-"}</td>
+              <td><button
+                  className="px-3 py-1 bg-emerald-600 text-white rounded hover:bg-emerald-700"
+                  type="button"
+                  onClick={() => onEditClick?.(b)}
+                >
+                  Edit
+                </button></td>
             </tr>
           ))}
           {bills.length === 0 && (
